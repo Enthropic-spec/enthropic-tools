@@ -2,7 +2,7 @@
 name = "enthropic"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.80"
 license = "MIT"
 description = "CLI for the Enthropic spec-driven development format"
 repository = "https://github.com/enthropic-spec/enthropic-tools"
@@ -16,10 +16,10 @@ clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chacha20poly1305 = "0.10"
-rand = "0.8"
-colored = "2"
+rand = "0.10"
+colored = "3"
 anyhow = "1"
 dialoguer = { version = "0.11", features = ["password"] }
-console = "0.15"
-indicatif = "0.17"
+console = "0.16"
+indicatif = "0.18"
 reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }

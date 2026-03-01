@@ -16,11 +16,11 @@ pub const fn pink() -> Style {
     Style::new().color256(219)
 }
 
-pub fn dimmed() -> Style {
+pub const fn dimmed() -> Style {
     Style::new().dim()
 }
 
-pub fn bold_white() -> Style {
+pub const fn bold_white() -> Style {
     Style::new().bold()
 }
 

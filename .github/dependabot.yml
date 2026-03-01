@@ -9,6 +9,9 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    ignore:
+      # MSRV toolchain pin — do not bump automatically
+      - dependency-name: "dtolnay/rust-toolchain"
 
   - package-ecosystem: github-actions
     directory: /

@@ -3,7 +3,6 @@ use chacha20poly1305::{
     aead::{Aead, KeyInit},
     ChaCha20Poly1305, Key, Nonce,
 };
-use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -75,7 +74,7 @@ fn get_or_create_global_key() -> Result<[u8; 32]> {
     }
 
     let mut key = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut key);
+    rand::fill(&mut key);
     std::fs::write(&kp, key)?;
 
     #[cfg(unix)]
@@ -90,7 +89,7 @@ fn get_or_create_global_key() -> Result<[u8; 32]> {
 fn encrypt_data(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(Key::from_slice(key));
     let mut nonce_bytes = [0u8; 12];
-    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    rand::fill(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = cipher
         .encrypt(nonce, data)
