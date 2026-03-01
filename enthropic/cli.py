@@ -52,26 +52,57 @@ def _project_name(path: Path) -> str:
 def cmd_validate(
     file: Optional[Path] = typer.Argument(None, help=".enth file to validate"),
 ):
-    """Validate an .enth file against the Enthropic specification rules."""
+    """Validate an .enth file against the Enthropic specification rules.
+
+    Also auto-creates state and vault files if they do not exist yet.
+    """
     path = _resolve_spec(file)
     spec = parse(path)
     errors = validate_spec(spec)
 
-    if not errors:
-        rprint(f"[green]✓[/green] {path} — valid")
-        raise typer.Exit(0)
+    if errors:
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("Rule", style="dim", width=6)
+        table.add_column("Severity", width=9)
+        table.add_column("Message")
+        for e in errors:
+            color = "red" if e.severity == "ERROR" else "yellow"
+            table.add_row(str(e.rule), f"[{color}]{e.severity}[/{color}]", e.message)
+        console.print(table)
+        raise typer.Exit(1)
 
-    table = Table(show_header=True, header_style="bold")
-    table.add_column("Rule", style="dim", width=6)
-    table.add_column("Severity", width=9)
-    table.add_column("Message")
+    rprint(f"[green]✓[/green] {path} — valid")
 
-    for e in errors:
-        color = "red" if e.severity == "ERROR" else "yellow"
-        table.add_row(str(e.rule), f"[{color}]{e.severity}[/{color}]", e.message)
+    # auto-create state file if missing
+    name = _project_name(path)
+    state_path = path.parent / f"state_{name}.enth"
+    if not state_path.exists():
+        content = state_mod.generate(spec, name)
+        state_path.write_text(content, encoding="utf-8")
+        rprint(f"[dim]  created {state_path.name}[/dim]")
 
-    console.print(table)
-    raise typer.Exit(1)
+    # auto-create empty vault file if missing
+    vault_path = path.parent / f"vault_{name}.enth"
+    if not vault_path.exists():
+        vault_path.write_text(f"# vault — {name}\n# managed by: enthropic vault set\n# never commit this file\n", encoding="utf-8")
+        rprint(f"[dim]  created {vault_path.name}[/dim]")
+
+    # auto-create .gitignore if missing
+    gitignore_path = path.parent / ".gitignore"
+    if not gitignore_path.exists():
+        gitignore_path.write_text("vault_*.enth\nstate_*.enth\n.env\n", encoding="utf-8")
+        rprint(f"[dim]  created .gitignore[/dim]")
+    else:
+        content = gitignore_path.read_text(encoding="utf-8")
+        additions = []
+        for entry in ("vault_*.enth", "state_*.enth"):
+            if entry not in content:
+                additions.append(entry)
+        if additions:
+            gitignore_path.write_text(content.rstrip() + "\n" + "\n".join(additions) + "\n", encoding="utf-8")
+            rprint(f"[dim]  updated .gitignore[/dim]")
+
+    raise typer.Exit(0)
 
 
 # ── context ───────────────────────────────────────────────────────────────────
