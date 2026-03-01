@@ -1,6 +1,7 @@
 mod build_cmd;
 mod context;
 mod global_config;
+mod mcp;
 mod new_wizard;
 mod parser;
 mod setup;
@@ -60,6 +61,8 @@ enum Commands {
         #[arg(help = ".enth spec file (defaults to enthropic.enth)")]
         file: Option<PathBuf>,
     },
+    #[command(about = "Start MCP server (stdio) — use with Claude Desktop, Cursor, or Docker")]
+    Serve,
 }
 
 #[derive(Subcommand)]
@@ -201,6 +204,7 @@ fn run() -> Result<()> {
             Commands::Setup => setup::run(),
             Commands::New => new_wizard::run(),
             Commands::Build { file } => build_cmd::run(file.as_ref()),
+            Commands::Serve => mcp::serve(),
         },
     }
 }
@@ -245,6 +249,11 @@ fn print_help() {
         "    {}    {}",
         pk.apply_to("vault     "),
         dim.apply_to("Manage encrypted project secrets (set / keys / export)")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("serve     "),
+        dim.apply_to("MCP server (stdio) — integrates with Claude Desktop, Cursor, Docker")
     );
     println!();
     println!("  {}", bold.apply_to("Quick start"));

@@ -42,9 +42,59 @@ enthropic vault set    <KEY> <VALUE> [file]
 enthropic vault delete <KEY>         [file]
 enthropic vault keys                 [file]   # names only — never values
 enthropic vault export [--out .env]  [file]   # explicit decrypt only
+
+enthropic serve                              # MCP server (stdio) — for Claude Desktop, Cursor, Docker
 ```
 
 `[file]` defaults to `enthropic.enth` in the current directory.
+
+## MCP Integration
+
+`enthropic serve` implements the [Model Context Protocol](https://modelcontextprotocol.io) over stdio.
+It exposes four tools that AI coders (Claude Desktop, Cursor, etc.) call automatically before generating code.
+
+| Tool | Description |
+|------|-------------|
+| `read_spec` | Returns the raw `.enth` file |
+| `get_context` | Returns spec + state formatted as AI system prompt |
+| `validate_spec` | Validates the spec, returns any errors |
+| `spec_summary` | Project name, language, stack, entity count |
+
+### Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "enthropic": {
+      "command": "enthropic",
+      "args": ["serve"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+### Docker
+
+```bash
+docker build -t enthropic .
+docker run --rm -i -v /path/to/project:/project enthropic
+```
+
+```json
+{
+  "mcpServers": {
+    "enthropic": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "-v", "/path/to/project:/project", "enthropic"]
+    }
+  }
+}
+```
+
+Once configured, the AI reads your `.enth` automatically at the start of every session — no manual copy-paste.
 
 ## Generated files
 
