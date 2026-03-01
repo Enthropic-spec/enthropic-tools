@@ -12,9 +12,6 @@ permissions:
   contents: read
   security-events: write
 
-env:
-  TRIVY_VERSION: "0.61.0"
-
 jobs:
   trivy-fs:
     name: Trivy filesystem scan
@@ -24,8 +21,14 @@ jobs:
 
       - name: Install Trivy
         run: |
-          curl -sfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-            | sudo tar -xzf - -C /usr/local/bin trivy
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -qq
+          sudo apt-get install -y trivy
           trivy --version
 
       - name: Scan repository
@@ -54,8 +57,14 @@ jobs:
 
       - name: Install Trivy
         run: |
-          curl -sfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-            | sudo tar -xzf - -C /usr/local/bin trivy
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -qq
+          sudo apt-get install -y trivy
           trivy --version
 
       - name: Scan Docker image
