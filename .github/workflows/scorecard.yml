@@ -18,7 +18,7 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -31,7 +31,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: scorecard.sarif
           category: openssf-scorecard
