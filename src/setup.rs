@@ -1,5 +1,5 @@
-use anyhow::Result;
 use crate::{global_config, tui};
+use anyhow::Result;
 
 const PROVIDERS: &[&str] = &["anthropic", "openai", "openrouter"];
 
@@ -42,7 +42,9 @@ fn fetch_openai_models(api_key: &str) -> Vec<String> {
                     let mut models: Vec<String> = data
                         .iter()
                         .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
-                        .filter(|id| id.starts_with("gpt-") || id.starts_with("o1") || id.starts_with("o3"))
+                        .filter(|id| {
+                            id.starts_with("gpt-") || id.starts_with("o1") || id.starts_with("o3")
+                        })
                         .collect();
                     models.sort();
                     models.reverse();
@@ -60,7 +62,10 @@ fn fetch_openrouter_models() -> Vec<String> {
     let client = reqwest::blocking::Client::new();
     let resp = client
         .get("https://openrouter.ai/api/v1/models")
-        .header("HTTP-Referer", "https://github.com/Enthropic-spec/enthropic-tools")
+        .header(
+            "HTTP-Referer",
+            "https://github.com/Enthropic-spec/enthropic-tools",
+        )
         .send();
     match resp {
         Ok(r) if r.status().is_success() => {
@@ -83,10 +88,10 @@ fn fetch_openrouter_models() -> Vec<String> {
 fn select_model(provider: &str, api_key: &str) -> Result<String> {
     tui::print_dim("  Fetching available models...");
     let models = match provider {
-        "anthropic"  => fetch_anthropic_models(api_key),
-        "openai"     => fetch_openai_models(api_key),
+        "anthropic" => fetch_anthropic_models(api_key),
+        "openai" => fetch_openai_models(api_key),
         "openrouter" => fetch_openrouter_models(),
-        _            => vec![],
+        _ => vec![],
     };
 
     if models.is_empty() {
@@ -147,7 +152,10 @@ pub fn run() -> Result<()> {
 
     println!();
     tui::print_success("Key stored encrypted in ~/.enthropic/global.keys");
-    tui::print_success(&format!("Config saved  provider={}  model={}", provider, model));
+    tui::print_success(&format!(
+        "Config saved  provider={}  model={}",
+        provider, model
+    ));
     println!();
 
     let create_now = tui::confirm("Create a new project now?")?;

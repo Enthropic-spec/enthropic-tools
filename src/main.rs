@@ -1,23 +1,27 @@
-mod parser;
-mod validator;
-mod state;
-mod vault;
-mod context;
-mod tui;
-mod global_config;
-mod setup;
-mod new_wizard;
 mod build_cmd;
+mod context;
+mod global_config;
+mod new_wizard;
+mod parser;
+mod setup;
+mod state;
+mod tui;
+mod validator;
+mod vault;
 
-use std::path::{Path, PathBuf};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
+use std::path::{Path, PathBuf};
 
 use parser::{EnthSpec, ProjectValue};
 
 #[derive(Parser)]
-#[command(name = "enthropic", about = "Enthropic — toolkit for the .enth architectural specification format.", disable_help_subcommand = true)]
+#[command(
+    name = "enthropic",
+    about = "Enthropic — toolkit for the .enth architectural specification format.",
+    disable_help_subcommand = true
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -118,9 +122,7 @@ fn resolve_spec(path: Option<&PathBuf>) -> Result<PathBuf> {
     if default.exists() {
         return Ok(default);
     }
-    anyhow::bail!(
-        "No .enth file specified and enthropic.enth not found in the current directory."
-    )
+    anyhow::bail!("No .enth file specified and enthropic.enth not found in the current directory.")
 }
 
 fn project_name(spec: &EnthSpec, path: &Path) -> String {
@@ -139,10 +141,7 @@ fn vault_project(file: Option<&PathBuf>) -> Result<(String, PathBuf, Vec<String>
     let spec_path = resolve_spec(file)?;
     let spec = parser::parse(&spec_path)?;
     let name = project_name(&spec, &spec_path);
-    let dir = spec_path
-        .parent()
-        .unwrap_or(Path::new("."))
-        .to_path_buf();
+    let dir = spec_path.parent().unwrap_or(Path::new(".")).to_path_buf();
     Ok((name, dir, spec.secrets.clone()))
 }
 
@@ -163,46 +162,46 @@ fn run() -> Result<()> {
             Ok(())
         }
         Some(cmd) => match cmd {
-        Commands::Validate { file } => {
-            tui::print_header();
-            cmd_validate(file.as_ref())
-        }
-        Commands::Context { file, out } => {
-            tui::print_header();
-            cmd_context(file.as_ref(), out.as_ref())
-        }
-        Commands::State { command } => match command {
-            StateCommands::Show { file } => {
+            Commands::Validate { file } => {
                 tui::print_header();
-                cmd_state_show(file.as_ref())
+                cmd_validate(file.as_ref())
             }
-            StateCommands::Set { key, status, file } => {
+            Commands::Context { file, out } => {
                 tui::print_header();
-                cmd_state_set(&key, &status, file.as_ref())
+                cmd_context(file.as_ref(), out.as_ref())
             }
+            Commands::State { command } => match command {
+                StateCommands::Show { file } => {
+                    tui::print_header();
+                    cmd_state_show(file.as_ref())
+                }
+                StateCommands::Set { key, status, file } => {
+                    tui::print_header();
+                    cmd_state_set(&key, &status, file.as_ref())
+                }
+            },
+            Commands::Vault { command } => match command {
+                VaultCommands::Set { key, value, file } => {
+                    tui::print_header();
+                    cmd_vault_set(&key, &value, file.as_ref())
+                }
+                VaultCommands::Delete { key, file } => {
+                    tui::print_header();
+                    cmd_vault_delete(&key, file.as_ref())
+                }
+                VaultCommands::Keys { file } => {
+                    tui::print_header();
+                    cmd_vault_keys(file.as_ref())
+                }
+                VaultCommands::Export { out, file } => {
+                    tui::print_header();
+                    cmd_vault_export(out.as_ref(), file.as_ref())
+                }
+            },
+            Commands::Setup => setup::run(),
+            Commands::New => new_wizard::run(),
+            Commands::Build { file } => build_cmd::run(file.as_ref()),
         },
-        Commands::Vault { command } => match command {
-            VaultCommands::Set { key, value, file } => {
-                tui::print_header();
-                cmd_vault_set(&key, &value, file.as_ref())
-            }
-            VaultCommands::Delete { key, file } => {
-                tui::print_header();
-                cmd_vault_delete(&key, file.as_ref())
-            }
-            VaultCommands::Keys { file } => {
-                tui::print_header();
-                cmd_vault_keys(file.as_ref())
-            }
-            VaultCommands::Export { out, file } => {
-                tui::print_header();
-                cmd_vault_export(out.as_ref(), file.as_ref())
-            }
-        },
-        Commands::Setup => setup::run(),
-        Commands::New => new_wizard::run(),
-        Commands::Build { file } => build_cmd::run(file.as_ref()),
-        }
     }
 }
 
@@ -212,17 +211,50 @@ fn print_help() {
     let bold = tui::bold_white();
     println!("  {}", bold.apply_to("Commands"));
     println!();
-    println!("    {}    {}", pk.apply_to("setup     "), dim.apply_to("Configure AI provider and API key"));
-    println!("    {}    {}", pk.apply_to("new       "), dim.apply_to("Quick wizard to scaffold a new .enth file"));
-    println!("    {}    {}", pk.apply_to("build     "), dim.apply_to("AI spec consultant — design your .enth through conversation"));
-    println!("    {}    {}", pk.apply_to("validate  "), dim.apply_to("Validate an .enth file against the spec rules"));
-    println!("    {}    {}", pk.apply_to("context   "), dim.apply_to("Generate AI context block from a spec"));
-    println!("    {}    {}", pk.apply_to("state     "), dim.apply_to("Manage project build state (show / set)"));
-    println!("    {}    {}", pk.apply_to("vault     "), dim.apply_to("Manage encrypted project secrets (set / keys / export)"));
+    println!(
+        "    {}    {}",
+        pk.apply_to("setup     "),
+        dim.apply_to("Configure AI provider and API key")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("new       "),
+        dim.apply_to("Quick wizard to scaffold a new .enth file")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("build     "),
+        dim.apply_to("AI spec consultant — design your .enth through conversation")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("validate  "),
+        dim.apply_to("Validate an .enth file against the spec rules")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("context   "),
+        dim.apply_to("Generate AI context block from a spec")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("state     "),
+        dim.apply_to("Manage project build state (show / set)")
+    );
+    println!(
+        "    {}    {}",
+        pk.apply_to("vault     "),
+        dim.apply_to("Manage encrypted project secrets (set / keys / export)")
+    );
     println!();
     println!("  {}", bold.apply_to("Quick start"));
     println!();
-    println!("    {}  →  {}  →  {}", pk.apply_to("enthropic setup"), pk.apply_to("enthropic build"), dim.apply_to("get your .enth"));
+    println!(
+        "    {}  →  {}  →  {}",
+        pk.apply_to("enthropic setup"),
+        pk.apply_to("enthropic build"),
+        dim.apply_to("get your .enth")
+    );
     println!();
 }
 
@@ -250,7 +282,14 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
             } else {
                 e.severity.yellow().to_string()
             };
-            println!("{:<rule_w$} {:<sev_w$} {}", e.rule, sev, e.message, rule_w = rule_w, sev_w = sev_w + 10);
+            println!(
+                "{:<rule_w$} {:<sev_w$} {}",
+                e.rule,
+                sev,
+                e.message,
+                rule_w = rule_w,
+                sev_w = sev_w + 10
+            );
         }
         std::process::exit(1);
     }
@@ -265,7 +304,14 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
     if !state_path.exists() {
         let content = state::generate(&spec, &name);
         std::fs::write(&state_path, content)?;
-        println!("{}", format!("  created {}", state_path.file_name().unwrap_or_default().to_string_lossy()).dimmed());
+        println!(
+            "{}",
+            format!(
+                "  created {}",
+                state_path.file_name().unwrap_or_default().to_string_lossy()
+            )
+            .dimmed()
+        );
     }
 
     // Always regenerate vault status file
@@ -273,7 +319,15 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
     let vault_existed = vault_path.exists();
     vault::refresh_vault_file(&name, &spec.secrets, dir)?;
     let vault_action = if vault_existed { "updated" } else { "created" };
-    println!("{}", format!("  {} {}", vault_action, vault_path.file_name().unwrap_or_default().to_string_lossy()).dimmed());
+    println!(
+        "{}",
+        format!(
+            "  {} {}",
+            vault_action,
+            vault_path.file_name().unwrap_or_default().to_string_lossy()
+        )
+        .dimmed()
+    );
 
     // Auto-create/update .gitignore
     let gitignore_path = dir.join(".gitignore");
@@ -304,7 +358,11 @@ fn cmd_context(file: Option<&PathBuf>, out: Option<&PathBuf>) -> Result<()> {
     let name = project_name(&spec, &path);
     let dir = path.parent().unwrap_or(Path::new("."));
     let candidate = dir.join(format!("state_{}.enth", name));
-    let state_path = if candidate.exists() { Some(candidate) } else { None };
+    let state_path = if candidate.exists() {
+        Some(candidate)
+    } else {
+        None
+    };
 
     let result = context::generate(&spec, state_path.as_deref())?;
 
@@ -388,12 +446,7 @@ fn cmd_state_set(key: &str, status: &str, file: Option<&PathBuf>) -> Result<()> 
 fn cmd_vault_set(key: &str, value: &str, file: Option<&PathBuf>) -> Result<()> {
     let (project, directory, secret_names) = vault_project(file)?;
     match vault::set_secret(&project, key, value, &directory, &secret_names) {
-        Ok(()) => println!(
-            "{} {} → SET in vault_{}.enth",
-            "✓".green(),
-            key,
-            project
-        ),
+        Ok(()) => println!("{} {} → SET in vault_{}.enth", "✓".green(), key, project),
         Err(e) => {
             eprintln!("{} {}", "✗".red(), e);
             std::process::exit(1);

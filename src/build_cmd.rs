@@ -1,8 +1,8 @@
+use anyhow::Result;
+use indicatif::{ProgressBar, ProgressStyle};
+use serde_json::{json, Value};
 use std::io::{self, Write};
 use std::path::PathBuf;
-use anyhow::Result;
-use serde_json::{json, Value};
-use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::{global_config, tui};
 
@@ -139,7 +139,8 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
     let mut history: Vec<Message> = Vec::new();
 
     if let Some(ref spec_path) = existing_spec {
-        println!("  {} spec: {}  provider: {}  model: {}",
+        println!(
+            "  {} spec: {}  provider: {}  model: {}",
             dim.apply_to(""),
             dim.apply_to(spec_path.display().to_string().as_str()),
             dim.apply_to(&provider),
@@ -158,14 +159,18 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
             );
             let prefix = tui::pink().apply_to("🧠  ›");
             println!("{} {}\n", prefix, opener);
-            history.push(Message { role: "assistant".to_string(), content: opener });
+            history.push(Message {
+                role: "assistant".to_string(),
+                content: opener,
+            });
         } else {
             tui::print_dim("  Starting fresh consultation.");
             println!();
             print_opener();
         }
     } else {
-        println!("  {} provider: {}  model: {}",
+        println!(
+            "  {} provider: {}  model: {}",
             dim.apply_to(""),
             dim.apply_to(&provider),
             dim.apply_to(&model)
@@ -173,7 +178,8 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
         println!("{}", sep);
         println!("  Spec consultant — design your .enth through conversation.");
         println!();
-        println!("  {}  {}  {}",
+        println!(
+            "  {}  {}  {}",
             dim.apply_to("save → write spec to disk"),
             dim.apply_to("·"),
             dim.apply_to("exit → end session")
@@ -183,7 +189,8 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
     }
 
     let mut last_spec_block: Option<String> = None;
-    let divider = tui::dimmed().apply_to("  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·");
+    let divider = tui::dimmed()
+        .apply_to("  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·");
 
     loop {
         print!("{} ", tui::bold_white().apply_to("You ›"));
@@ -193,7 +200,9 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
         io::stdin().read_line(&mut user_input)?;
         let user_input = user_input.trim().to_string();
 
-        if user_input.is_empty() { continue; }
+        if user_input.is_empty() {
+            continue;
+        }
 
         if user_input == "exit" || user_input == "quit" {
             println!();
@@ -215,7 +224,10 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
             continue;
         }
 
-        history.push(Message { role: "user".to_string(), content: user_input.clone() });
+        history.push(Message {
+            role: "user".to_string(),
+            content: user_input.clone(),
+        });
 
         let spinner = ProgressBar::new_spinner();
         spinner.set_style(
@@ -243,7 +255,10 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
                 }
                 println!("{}\n", divider);
 
-                history.push(Message { role: "assistant".to_string(), content: reply });
+                history.push(Message {
+                    role: "assistant".to_string(),
+                    content: reply,
+                });
             }
             Err(e) => {
                 tui::print_error(&format!("API error: {}  (session continues)", e));
@@ -304,7 +319,9 @@ fn save_spec(content: &str) -> Result<()> {
                 tui::print_success(&format!("Vault file: vault_{}.enth", name));
             }
             println!();
-            tui::print_dim("  The spec is now your source of truth. Pass it to your AI coder as context.");
+            tui::print_dim(
+                "  The spec is now your source of truth. Pass it to your AI coder as context.",
+            );
             println!();
         }
         Err(e) => {

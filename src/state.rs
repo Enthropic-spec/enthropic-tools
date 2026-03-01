@@ -1,9 +1,16 @@
-use std::path::Path;
-use anyhow::Result;
 use crate::parser::{EnthSpec, ProjectValue};
+use anyhow::Result;
+use std::path::Path;
 
 pub const STATUS_VALUES: &[&str] = &[
-    "BUILT", "PARTIAL", "PENDING", "OK", "MISSING", "UNVERIFIED", "SET", "UNSET",
+    "BUILT",
+    "PARTIAL",
+    "PENDING",
+    "OK",
+    "MISSING",
+    "UNVERIFIED",
+    "SET",
+    "UNSET",
 ];
 
 pub fn generate(spec: &EnthSpec, project_name: &str) -> String {

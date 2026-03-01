@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::path::PathBuf;
 use anyhow::{Context as _, Result};
 use chacha20poly1305::{
     aead::{Aead, KeyInit},
@@ -7,6 +5,8 @@ use chacha20poly1305::{
 };
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GlobalConfig {
@@ -64,10 +64,12 @@ fn get_or_create_global_key() -> Result<[u8; 32]> {
     ensure_dir()?;
     let kp = global_key_path();
     if kp.exists() {
-        let bytes = std::fs::read(&kp)
-            .with_context(|| "Failed to read global key file")?;
+        let bytes = std::fs::read(&kp).with_context(|| "Failed to read global key file")?;
         if bytes.len() != 32 {
-            anyhow::bail!("Global key file corrupted: expected 32 bytes, got {}", bytes.len());
+            anyhow::bail!(
+                "Global key file corrupted: expected 32 bytes, got {}",
+                bytes.len()
+            );
         }
         let mut key = [0u8; 32];
         key.copy_from_slice(&bytes);

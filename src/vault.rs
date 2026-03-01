@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use chacha20poly1305::{
     aead::{Aead, KeyInit},
     ChaCha20Poly1305, Key, Nonce,
 };
 use rand::RngCore;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 fn home_dir() -> PathBuf {
     std::env::var("HOME")
@@ -115,7 +115,11 @@ pub fn generate_vault_file(project: &str, secret_names: &[String]) -> Result<Str
         lines.push("  # no secrets declared in spec".to_string());
     } else {
         for name in secret_names {
-            let status = if existing.contains_key(name.as_str()) { "SET" } else { "UNSET" };
+            let status = if existing.contains_key(name.as_str()) {
+                "SET"
+            } else {
+                "UNSET"
+            };
             lines.push(format!("  {:<28} {}", name, status));
         }
     }

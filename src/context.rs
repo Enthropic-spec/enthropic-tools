@@ -1,6 +1,6 @@
-use std::path::Path;
-use anyhow::Result;
 use crate::parser::EnthSpec;
+use anyhow::Result;
+use std::path::Path;
 
 const PREAMBLE_TEMPLATE: &str = "\
 === ENTHROPIC CONTEXT {version} ===
@@ -25,7 +25,11 @@ RULES:
 ";
 
 pub fn generate(spec: &EnthSpec, state_path: Option<&Path>) -> Result<String> {
-    let version = if spec.version.is_empty() { "0.1.0" } else { &spec.version };
+    let version = if spec.version.is_empty() {
+        "0.1.0"
+    } else {
+        &spec.version
+    };
     let preamble = PREAMBLE_TEMPLATE.replace("{version}", version);
 
     let spec_content = std::fs::read_to_string(&spec.source_file)?;
@@ -36,7 +40,9 @@ pub fn generate(spec: &EnthSpec, state_path: Option<&Path>) -> Result<String> {
             let state_content = std::fs::read_to_string(sp)?;
             output.push_str("\n\n=== CURRENT BUILD STATE ===\n\n");
             output.push_str(&state_content);
-            output.push_str("\n\nOnly implement entities, flows, and layers marked PENDING or PARTIAL.");
+            output.push_str(
+                "\n\nOnly implement entities, flows, and layers marked PENDING or PARTIAL.",
+            );
             output.push_str("\nDo not re-implement anything marked BUILT.");
         }
     }

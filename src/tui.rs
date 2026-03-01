@@ -71,9 +71,7 @@ pub fn confirm(prompt: &str) -> Result<bool> {
 }
 
 pub fn input(prompt: &str) -> Result<String> {
-    let result: String = Input::new()
-        .with_prompt(prompt)
-        .interact_text()?;
+    let result: String = Input::new().with_prompt(prompt).interact_text()?;
     Ok(result)
 }
 
@@ -86,9 +84,7 @@ pub fn input_with_default(prompt: &str, default: &str) -> Result<String> {
 }
 
 pub fn password(prompt: &str) -> Result<String> {
-    let result = Password::new()
-        .with_prompt(prompt)
-        .interact()?;
+    let result = Password::new().with_prompt(prompt).interact()?;
     Ok(result)
 }
 

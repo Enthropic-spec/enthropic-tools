@@ -1,6 +1,6 @@
+use anyhow::{Context as _, Result};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use anyhow::{Context as _, Result};
 
 #[derive(Debug, Clone)]
 pub struct Transform {
@@ -112,7 +112,8 @@ pub fn parse(path: &Path) -> Result<EnthSpec> {
         } else if tok == "PROJECT" || tok.starts_with("PROJECT ") {
             if tok.starts_with("PROJECT ") {
                 let name = tok[8..].trim().to_string();
-                spec.project.entry("NAME".to_string())
+                spec.project
+                    .entry("NAME".to_string())
                     .or_insert(ProjectValue::Str(name));
             }
             i = parse_project(&lines, i + 1, &mut spec);
@@ -151,7 +152,8 @@ fn parse_project(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
         let ind = indent_len(clean);
         if ind == 0 {
             if !deps_map.is_empty() {
-                spec.project.insert("DEPS".to_string(), ProjectValue::Deps(deps_map));
+                spec.project
+                    .insert("DEPS".to_string(), ProjectValue::Deps(deps_map));
             }
             return i;
         }
@@ -162,7 +164,8 @@ fn parse_project(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
                     let key = key.trim().to_string();
                     let val = val.trim().trim_matches('"').trim().to_string();
                     if key == "STACK" {
-                        spec.project.insert(key, ProjectValue::List(split_list(&val)));
+                        spec.project
+                            .insert(key, ProjectValue::List(split_list(&val)));
                     } else {
                         spec.project.insert(key, ProjectValue::Str(val));
                     }
@@ -180,7 +183,8 @@ fn parse_project(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
         i += 1;
     }
     if !deps_map.is_empty() {
-        spec.project.insert("DEPS".to_string(), ProjectValue::Deps(deps_map));
+        spec.project
+            .insert("DEPS".to_string(), ProjectValue::Deps(deps_map));
     }
     i
 }
@@ -253,7 +257,13 @@ fn parse_layers(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
             let name = tok.to_string();
             current = Some(name.clone());
             spec.layers_order.push(name.clone());
-            spec.layers.insert(name.clone(), Layer { name, ..Default::default() });
+            spec.layers.insert(
+                name.clone(),
+                Layer {
+                    name,
+                    ..Default::default()
+                },
+            );
         } else if let Some(ref cur_name) = current.clone() {
             if let Some((key, val)) = tok.split_once(|c: char| c.is_whitespace()) {
                 let val = val.trim().to_string();
@@ -295,7 +305,13 @@ fn parse_contracts(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
                 let name = tok[5..].trim().to_string();
                 current_flow = Some(name.clone());
                 spec.flows_order.push(name.clone());
-                spec.flows.insert(name.clone(), Flow { name, ..Default::default() });
+                spec.flows.insert(
+                    name.clone(),
+                    Flow {
+                        name,
+                        ..Default::default()
+                    },
+                );
             } else {
                 current_flow = None;
                 let parts: Vec<&str> = tok.split_whitespace().collect();
@@ -318,17 +334,26 @@ fn parse_contracts(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
                 .map(|(f, r)| (f.trim(), r.trim()))
                 .unwrap_or((tok, ""));
 
-            if first.ends_with('.') && first[..first.len() - 1].chars().all(|c| c.is_ascii_digit()) {
+            if first.ends_with('.') && first[..first.len() - 1].chars().all(|c| c.is_ascii_digit())
+            {
                 let num: usize = first[..first.len() - 1].parse().unwrap_or(0);
                 if let Some(dot_pos) = rest.find('.') {
                     let subj = rest[..dot_pos].trim().to_string();
                     let act = rest[dot_pos + 1..].trim().to_string();
                     if let Some(flow) = spec.flows.get_mut(flow_name) {
-                        flow.steps.push(FlowStep { number: num, subject: subj, action: act });
+                        flow.steps.push(FlowStep {
+                            number: num,
+                            subject: subj,
+                            action: act,
+                        });
                     }
                 } else {
                     if let Some(flow) = spec.flows.get_mut(flow_name) {
-                        flow.steps.push(FlowStep { number: num, subject: String::new(), action: rest.to_string() });
+                        flow.steps.push(FlowStep {
+                            number: num,
+                            subject: String::new(),
+                            action: rest.to_string(),
+                        });
                     }
                 }
             } else {

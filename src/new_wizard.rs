@@ -1,8 +1,14 @@
-use anyhow::Result;
 use crate::{parser, tui, validator};
+use anyhow::Result;
 
 const LANGUAGES: &[&str] = &["python", "rust", "typescript", "go", "other"];
-const ARCH_STYLES: &[&str] = &["layered", "event-driven", "realtime", "offline-first", "other"];
+const ARCH_STYLES: &[&str] = &[
+    "layered",
+    "event-driven",
+    "realtime",
+    "offline-first",
+    "other",
+];
 
 pub fn run() -> Result<()> {
     tui::print_header();
@@ -73,7 +79,11 @@ pub fn run() -> Result<()> {
                 .collect();
             println!();
 
-            layers.push(LayerDef { name: layer_name, calls, never });
+            layers.push(LayerDef {
+                name: layer_name,
+                calls,
+                never,
+            });
 
             let add_more = tui::confirm("Add another layer?")?;
             println!();
@@ -189,7 +199,10 @@ pub fn run() -> Result<()> {
     if errors.is_empty() {
         tui::print_success(&format!("{} created and validated", spec_filename));
     } else {
-        tui::print_success(&format!("{} created (with warnings — check above)", spec_filename));
+        tui::print_success(&format!(
+            "{} created (with warnings — check above)",
+            spec_filename
+        ));
     }
     tui::print_success(&format!("{} created", state_filename));
     tui::print_success(&format!("{} created", vault_filename));
