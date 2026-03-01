@@ -3,6 +3,11 @@ mod validator;
 mod state;
 mod vault;
 mod context;
+mod tui;
+mod global_config;
+mod setup;
+mod new_wizard;
+mod build_cmd;
 
 use std::path::{Path, PathBuf};
 use anyhow::Result;
@@ -41,6 +46,15 @@ enum Commands {
     Vault {
         #[command(subcommand)]
         command: VaultCommands,
+    },
+    #[command(about = "Configure your AI provider and API key")]
+    Setup,
+    #[command(about = "Create a new Enthropic project interactively")]
+    New,
+    #[command(about = "Start an interactive AI build session for this project")]
+    Build {
+        #[arg(help = ".enth spec file (defaults to enthropic.enth)")]
+        file: Option<PathBuf>,
     },
 }
 
@@ -143,22 +157,45 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Validate { file } => cmd_validate(file.as_ref()),
-        Commands::Context { file, out } => cmd_context(file.as_ref(), out.as_ref()),
+        Commands::Validate { file } => {
+            tui::print_header();
+            cmd_validate(file.as_ref())
+        }
+        Commands::Context { file, out } => {
+            tui::print_header();
+            cmd_context(file.as_ref(), out.as_ref())
+        }
         Commands::State { command } => match command {
-            StateCommands::Show { file } => cmd_state_show(file.as_ref()),
+            StateCommands::Show { file } => {
+                tui::print_header();
+                cmd_state_show(file.as_ref())
+            }
             StateCommands::Set { key, status, file } => {
+                tui::print_header();
                 cmd_state_set(&key, &status, file.as_ref())
             }
         },
         Commands::Vault { command } => match command {
             VaultCommands::Set { key, value, file } => {
+                tui::print_header();
                 cmd_vault_set(&key, &value, file.as_ref())
             }
-            VaultCommands::Delete { key, file } => cmd_vault_delete(&key, file.as_ref()),
-            VaultCommands::Keys { file } => cmd_vault_keys(file.as_ref()),
-            VaultCommands::Export { out, file } => cmd_vault_export(out.as_ref(), file.as_ref()),
+            VaultCommands::Delete { key, file } => {
+                tui::print_header();
+                cmd_vault_delete(&key, file.as_ref())
+            }
+            VaultCommands::Keys { file } => {
+                tui::print_header();
+                cmd_vault_keys(file.as_ref())
+            }
+            VaultCommands::Export { out, file } => {
+                tui::print_header();
+                cmd_vault_export(out.as_ref(), file.as_ref())
+            }
         },
+        Commands::Setup => setup::run(),
+        Commands::New => new_wizard::run(),
+        Commands::Build { file } => build_cmd::run(file.as_ref()),
     }
 }
 
