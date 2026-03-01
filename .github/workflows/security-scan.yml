@@ -8,16 +8,17 @@ on:
   schedule:
     - cron: '0 4 * * 1'
 
-permissions:
-  contents: read
-  security-events: write
+permissions: read-all
 
 jobs:
   trivy-fs:
     name: Trivy filesystem scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install Trivy
         run: |
@@ -41,7 +42,7 @@ jobs:
             .
 
       - name: Upload Trivy SARIF to Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4
         with:
           sarif_file: trivy-results.sarif
           category: trivy
@@ -49,8 +50,11 @@ jobs:
   trivy-docker:
     name: Trivy Docker image scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Build image
         run: docker build -t enthropic:scan .
@@ -77,7 +81,7 @@ jobs:
             enthropic:scan
 
       - name: Upload Docker scan SARIF
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4
         with:
           sarif_file: trivy-docker.sarif
           category: trivy-docker

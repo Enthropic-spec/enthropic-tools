@@ -19,7 +19,7 @@ chacha20poly1305 = "0.10"
 rand = "0.10"
 colored = "3"
 anyhow = "1"
-dialoguer = { version = "0.11", features = ["password"] }
+dialoguer = { version = "0.12", features = ["password"] }
 console = "0.16"
 indicatif = "0.18"
 reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }

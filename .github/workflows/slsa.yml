@@ -13,9 +13,11 @@ jobs:
     outputs:
       binary-digest: ${{ steps.hash.outputs.hash }}
     steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
 
       - name: Build release
         run: cargo build --release
@@ -27,7 +29,7 @@ jobs:
           echo "hash=$(base64 -w0 checksums.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: enthropic-linux-amd64
           path: |
@@ -42,7 +44,7 @@ jobs:
       actions: read
       id-token: write
       contents: write
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@5a775b367a56d5bd118a224a811bba288150a563 # v2.0.0
     with:
       base64-subjects: ${{ needs.build.outputs.binary-digest }}
       upload-assets: true
