@@ -4,12 +4,28 @@ from pathlib import Path
 
 from .parser import EnthSpec
 
-STATUS_VALUES = {"BUILT", "PARTIAL", "PENDING"}
+STATUS_VALUES = {"BUILT", "PARTIAL", "PENDING", "OK", "MISSING", "UNVERIFIED", "SET", "UNSET"}
 
 
 def generate(spec: EnthSpec, project_name: str) -> str:
-    """Generate a structured state file from a spec. All items start as PENDING."""
+    """Generate a structured state file from a spec. All items start as PENDING/UNVERIFIED."""
     lines = [f"STATE {project_name}", ""]
+
+    # CHECKS — derived from LANG + DEPS.SYSTEM + DEPS.RUNTIME
+    checks: list[tuple[str, str]] = []
+    if spec.project.get("LANG"):
+        checks.append((spec.project["LANG"], "LANG"))
+    deps = spec.project.get("DEPS", {})
+    for dep in deps.get("SYSTEM", []):
+        checks.append((dep, "DEPS.SYSTEM"))
+    for dep in deps.get("RUNTIME", []):
+        checks.append((dep, "DEPS.RUNTIME"))
+
+    if checks:
+        lines.append("  CHECKS")
+        for name, source in checks:
+            lines.append(f"    {name:<28} UNVERIFIED   # {source}")
+        lines.append("")
 
     if spec.entities:
         lines.append("  ENTITY")

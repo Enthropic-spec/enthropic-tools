@@ -73,19 +73,20 @@ def cmd_validate(
 
     rprint(f"[green]✓[/green] {path} — valid")
 
-    # auto-create state file if missing
     name = _project_name(path)
+
+    # auto-create state file if missing
     state_path = path.parent / f"state_{name}.enth"
     if not state_path.exists():
         content = state_mod.generate(spec, name)
         state_path.write_text(content, encoding="utf-8")
         rprint(f"[dim]  created {state_path.name}[/dim]")
 
-    # auto-create empty vault file if missing
+    # always regenerate vault status file from SECRETS in spec
     vault_path = path.parent / f"vault_{name}.enth"
-    if not vault_path.exists():
-        vault_path.write_text(f"# vault — {name}\n# managed by: enthropic vault set\n# never commit this file\n", encoding="utf-8")
-        rprint(f"[dim]  created {vault_path.name}[/dim]")
+    vault_existed = vault_path.exists()
+    vault_mod.refresh_vault_file(name, spec.secrets, path.parent)
+    rprint(f"[dim]  {'updated' if vault_existed else 'created'} {vault_path.name}[/dim]")
 
     # auto-create .gitignore if missing
     gitignore_path = path.parent / ".gitignore"
@@ -93,13 +94,10 @@ def cmd_validate(
         gitignore_path.write_text("vault_*.enth\nstate_*.enth\n.env\n", encoding="utf-8")
         rprint(f"[dim]  created .gitignore[/dim]")
     else:
-        content = gitignore_path.read_text(encoding="utf-8")
-        additions = []
-        for entry in ("vault_*.enth", "state_*.enth"):
-            if entry not in content:
-                additions.append(entry)
+        existing = gitignore_path.read_text(encoding="utf-8")
+        additions = [e for e in ("vault_*.enth", "state_*.enth") if e not in existing]
         if additions:
-            gitignore_path.write_text(content.rstrip() + "\n" + "\n".join(additions) + "\n", encoding="utf-8")
+            gitignore_path.write_text(existing.rstrip() + "\n" + "\n".join(additions) + "\n", encoding="utf-8")
             rprint(f"[dim]  updated .gitignore[/dim]")
 
     raise typer.Exit(0)
@@ -197,9 +195,10 @@ def cmd_state_show(
 
 # ── vault ─────────────────────────────────────────────────────────────────────
 
-def _vault_project(file: Optional[Path]) -> tuple[str, Path]:
+def _vault_project(file: Optional[Path]) -> tuple[str, Path, list[str]]:
     spec_path = _resolve_spec(file)
-    return _project_name(spec_path), spec_path.parent
+    spec = parse(spec_path)
+    return _project_name(spec_path), spec_path.parent, spec.secrets
 
 
 @vault_app.command("set")
@@ -209,10 +208,10 @@ def cmd_vault_set(
     file: Optional[Path] = typer.Option(None, "--spec", help=".enth spec file"),
 ):
     """Store a secret in the encrypted vault."""
-    project, directory = _vault_project(file)
+    project, directory, secret_names = _vault_project(file)
     try:
-        vault_mod.set_secret(project, key, value, directory)
-        rprint(f"[green]✓[/green] {key} stored in vault_{project}.enth")
+        vault_mod.set_secret(project, key, value, directory, secret_names)
+        rprint(f"[green]✓[/green] {key} → SET in vault_{project}.enth")
     except RuntimeError as e:
         rprint(f"[red]✗[/red] {e}")
         raise typer.Exit(1)
@@ -224,10 +223,10 @@ def cmd_vault_delete(
     file: Optional[Path] = typer.Option(None, "--spec", help=".enth spec file"),
 ):
     """Remove a secret from the vault."""
-    project, directory = _vault_project(file)
+    project, directory, secret_names = _vault_project(file)
     try:
-        vault_mod.delete_secret(project, key, directory)
-        rprint(f"[green]✓[/green] {key} removed from vault")
+        vault_mod.delete_secret(project, key, directory, secret_names)
+        rprint(f"[green]✓[/green] {key} → UNSET")
     except (RuntimeError, KeyError) as e:
         rprint(f"[red]✗[/red] {e}")
         raise typer.Exit(1)
@@ -238,13 +237,13 @@ def cmd_vault_keys(
     file: Optional[Path] = typer.Option(None, "--spec", help=".enth spec file"),
 ):
     """List all key names in the vault. Values are never shown."""
-    project, directory = _vault_project(file)
+    project, directory, _ = _vault_project(file)
     try:
         keys = vault_mod.list_keys(project, directory)
         if not keys:
-            rprint("[dim]Vault is empty.[/dim]")
+            rprint("[dim]No secrets set yet.[/dim]")
         for k in keys:
-            rprint(f"  [cyan]{k}[/cyan]")
+            rprint(f"  [cyan]{k}[/cyan]  [green]SET[/green]")
     except RuntimeError as e:
         rprint(f"[red]✗[/red] {e}")
         raise typer.Exit(1)
@@ -255,8 +254,8 @@ def cmd_vault_export(
     out: Optional[Path] = typer.Option(None, "--out", "-o", help="Write to .env file"),
     file: Optional[Path] = typer.Option(None, "--spec", help=".enth spec file"),
 ):
-    """Export vault contents in .env format."""
-    project, directory = _vault_project(file)
+    """Export vault contents as .env (decrypted). Explicit action only."""
+    project, directory, _ = _vault_project(file)
     try:
         result = vault_mod.export_env(project, directory)
         if out:

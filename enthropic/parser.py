@@ -75,6 +75,7 @@ class EnthSpec:
     layers: dict[str, Layer] = field(default_factory=dict)
     contracts: list[Contract] = field(default_factory=list)
     flows: dict[str, Flow] = field(default_factory=dict)
+    secrets: list[str] = field(default_factory=list)  # names only, never values
 
 
 # ── parser entry point ────────────────────────────────────────────────────────
@@ -110,6 +111,8 @@ def parse(path: Path) -> EnthSpec:
             i = _parse_layers(lines, i + 1, spec)
         elif tok == "CONTRACTS":
             i = _parse_contracts(lines, i + 1, spec)
+        elif tok == "SECRETS":
+            i = _parse_secrets(lines, i + 1, spec)
         else:
             i += 1
     return spec
@@ -271,5 +274,21 @@ def _parse_contracts(lines: list[str], start: int, spec: EnthSpec) -> int:
                     current_flow.retry = int(rest)
                 except ValueError:
                     pass
+        i += 1
+    return i
+
+
+def _parse_secrets(lines: list[str], start: int, spec: EnthSpec) -> int:
+    i = start
+    while i < len(lines):
+        clean = _strip_comment(lines[i])
+        tok = clean.strip()
+        if not tok:
+            i += 1
+            continue
+        if _indent(clean) == 0:
+            return i
+        # first token is the key name — value is never stored here
+        spec.secrets.append(tok.split()[0])
         i += 1
     return i
