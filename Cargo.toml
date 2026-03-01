@@ -20,6 +20,6 @@ rand = "0.8"
 colored = "2"
 anyhow = "1"
 dialoguer = { version = "0.11", features = ["password"] }
-console = "0.15"
+console = "0.16"
 indicatif = "0.17"
 reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
