@@ -33,10 +33,14 @@ fn is_snake_case(s: &str) -> bool {
     chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
     let mut errors: Vec<ValidationError> = Vec::new();
-    let entities: std::collections::HashSet<&str> =
-        spec.entities.iter().map(|s| s.as_str()).collect();
+    let entities: std::collections::HashSet<&str> = spec
+        .entities
+        .iter()
+        .map(std::string::String::as_str)
+        .collect();
 
     // 1 — VERSION must be present
     if spec.version.is_empty() {
@@ -62,7 +66,7 @@ pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
             if !entities.contains(name.as_str()) {
                 errors.push(ValidationError {
                     rule: 3,
-                    message: format!("TRANSFORM references undeclared entity '{}'", name),
+                    message: format!("TRANSFORM references undeclared entity '{name}'"),
                     severity: "ERROR".to_string(),
                 });
             }
@@ -136,7 +140,7 @@ pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
         if !is_upper_case(name) {
             errors.push(ValidationError {
                 rule: 8,
-                message: format!("LAYERS name must be UPPER_CASE: '{}'", name),
+                message: format!("LAYERS name must be UPPER_CASE: '{name}'"),
                 severity: "ERROR".to_string(),
             });
         }
@@ -147,7 +151,7 @@ pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
         if !is_pascal_case(entry) {
             errors.push(ValidationError {
                 rule: 9,
-                message: format!("VOCABULARY entry must be PascalCase: '{}'", entry),
+                message: format!("VOCABULARY entry must be PascalCase: '{entry}'"),
                 severity: "ERROR".to_string(),
             });
         }
@@ -158,7 +162,7 @@ pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
         if !is_snake_case(entity) {
             errors.push(ValidationError {
                 rule: 10,
-                message: format!("ENTITY identifier must be snake_case: '{}'", entity),
+                message: format!("ENTITY identifier must be snake_case: '{entity}'"),
                 severity: "ERROR".to_string(),
             });
         }
@@ -184,8 +188,11 @@ pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
     }
 
     // 12 — LAYERS CALLS may only reference declared layer names
-    let declared_layers: std::collections::HashSet<&str> =
-        spec.layers.keys().map(|s| s.as_str()).collect();
+    let declared_layers: std::collections::HashSet<&str> = spec
+        .layers
+        .keys()
+        .map(std::string::String::as_str)
+        .collect();
     for layer in spec.layers.values() {
         for ref_name in &layer.calls {
             if !declared_layers.contains(ref_name.as_str()) {
@@ -206,7 +213,7 @@ pub fn validate(spec: &EnthSpec) -> Vec<ValidationError> {
         if !is_upper_case(secret) {
             errors.push(ValidationError {
                 rule: 13,
-                message: format!("SECRETS entry must be UPPER_CASE: '{}'", secret),
+                message: format!("SECRETS entry must be UPPER_CASE: '{secret}'"),
                 severity: "ERROR".to_string(),
             });
         }

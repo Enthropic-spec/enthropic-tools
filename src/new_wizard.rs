@@ -1,5 +1,6 @@
 use crate::{parser, tui, validator};
 use anyhow::Result;
+use std::fmt::Write;
 
 const LANGUAGES: &[&str] = &["python", "rust", "typescript", "go", "other"];
 const ARCH_STYLES: &[&str] = &[
@@ -10,6 +11,13 @@ const ARCH_STYLES: &[&str] = &[
     "other",
 ];
 
+struct LayerDef {
+    name: String,
+    calls: Vec<String>,
+    never: Vec<String>,
+}
+
+#[allow(clippy::too_many_lines)]
 pub fn run() -> Result<()> {
     tui::print_header();
 
@@ -44,11 +52,6 @@ pub fn run() -> Result<()> {
     println!();
 
     // Layers
-    struct LayerDef {
-        name: String,
-        calls: Vec<String>,
-        never: Vec<String>,
-    }
     let mut layers: Vec<LayerDef> = Vec::new();
 
     println!("  Layers — logical boundaries in your code.");
@@ -116,27 +119,27 @@ pub fn run() -> Result<()> {
 
     let mut content = String::new();
     content.push_str("VERSION 1\n\n");
-    content.push_str(&format!("PROJECT \"{}\"\n", name_clean));
-    content.push_str(&format!("  LANG {}\n", lang));
-    content.push_str(&format!("  ARCH {}\n", arch));
+    writeln!(content, "PROJECT \"{name_clean}\"").unwrap();
+    writeln!(content, "  LANG {lang}").unwrap();
+    writeln!(content, "  ARCH {arch}").unwrap();
     if !stack.is_empty() {
-        content.push_str(&format!("  STACK {}\n", stack.join(", ")));
+        writeln!(content, "  STACK {}", stack.join(", ")).unwrap();
     }
     content.push('\n');
 
     if !entities.is_empty() {
-        content.push_str(&format!("ENTITY {}\n\n", entities.join(", ")));
+        write!(content, "ENTITY {}\n\n", entities.join(", ")).unwrap();
     }
 
     if !layers.is_empty() {
         content.push_str("LAYERS\n");
         for layer in &layers {
-            content.push_str(&format!("  {}\n", layer.name));
+            writeln!(content, "  {}", layer.name).unwrap();
             if !layer.calls.is_empty() {
-                content.push_str(&format!("    CALLS {}\n", layer.calls.join(", ")));
+                writeln!(content, "    CALLS {}", layer.calls.join(", ")).unwrap();
             }
             for n in &layer.never {
-                content.push_str(&format!("    NEVER {}\n", n));
+                writeln!(content, "    NEVER {n}").unwrap();
             }
         }
         content.push('\n');
@@ -145,15 +148,15 @@ pub fn run() -> Result<()> {
     if !secrets.is_empty() {
         content.push_str("SECRETS\n");
         for s in &secrets {
-            content.push_str(&format!("  {}\n", s));
+            writeln!(content, "  {s}").unwrap();
         }
         content.push('\n');
     }
 
     // Write spec file
     let spec_filename = "enthropic.enth";
-    let state_filename = format!("state_{}.enth", slug);
-    let vault_filename = format!("vault_{}.enth", slug);
+    let state_filename = format!("state_{slug}.enth");
+    let vault_filename = format!("vault_{slug}.enth");
 
     std::fs::write(spec_filename, &content)?;
 
@@ -180,9 +183,7 @@ pub fn run() -> Result<()> {
     // Create/update .gitignore
     let gitignore = ".gitignore";
     let ignore_entries = ["vault_*.enth", "state_*.enth", ".env"];
-    if !std::path::Path::new(gitignore).exists() {
-        std::fs::write(gitignore, ignore_entries.join("\n") + "\n")?;
-    } else {
+    if std::path::Path::new(gitignore).exists() {
         let existing = std::fs::read_to_string(gitignore)?;
         let additions: Vec<&str> = ignore_entries
             .iter()
@@ -193,19 +194,20 @@ pub fn run() -> Result<()> {
             let new_content = existing.trim_end().to_string() + "\n" + &additions.join("\n") + "\n";
             std::fs::write(gitignore, new_content)?;
         }
+    } else {
+        std::fs::write(gitignore, ignore_entries.join("\n") + "\n")?;
     }
 
     println!();
     if errors.is_empty() {
-        tui::print_success(&format!("{} created and validated", spec_filename));
+        tui::print_success(&format!("{spec_filename} created and validated"));
     } else {
         tui::print_success(&format!(
-            "{} created (with warnings — check above)",
-            spec_filename
+            "{spec_filename} created (with warnings — check above)"
         ));
     }
-    tui::print_success(&format!("{} created", state_filename));
-    tui::print_success(&format!("{} created", vault_filename));
+    tui::print_success(&format!("{state_filename} created"));
+    tui::print_success(&format!("{vault_filename} created"));
     println!();
     tui::print_dim("  Next: run  enthropic build  to start building with AI.");
 

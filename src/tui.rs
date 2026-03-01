@@ -2,16 +2,16 @@ use anyhow::Result;
 use console::Style;
 use dialoguer::{Confirm, Input, Password, Select};
 
-const LOGO: &str = r#"              __  __                     _     
+const LOGO: &str = r"              __  __                     _     
   ___  ____  / /_/ /_  _________  ____  (_)____
  / _ \/ __ \/ __/ __ \/ ___/ __ \/ __ \/ / ___/
 /  __/ / / / /_/ / / / /  / /_/ / /_/ / / /__  
 \___/_/ /_/\__/_/ /_/_/   \____/ .___/_/\___/  
-                              /_/              "#;
+                              /_/              ";
 
 const SEPARATOR: &str = "──────────────────────────────────────────────────────────────";
 
-pub fn pink() -> Style {
+pub const fn pink() -> Style {
     // 219 = #ffafff — soft pink/rose, 211 = #ff87af — deeper pink
     Style::new().color256(219)
 }
@@ -24,11 +24,11 @@ pub fn bold_white() -> Style {
     Style::new().bold()
 }
 
-pub fn success_green() -> Style {
+pub const fn success_green() -> Style {
     Style::new().green()
 }
 
-pub fn error_red() -> Style {
+pub const fn error_red() -> Style {
     Style::new().red()
 }
 
@@ -100,6 +100,6 @@ pub fn select(prompt: &str, items: &[&str]) -> Result<usize> {
 
 #[allow(dead_code)]
 pub fn select_string(prompt: &str, items: &[String]) -> Result<usize> {
-    let refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
+    let refs: Vec<&str> = items.iter().map(std::string::String::as_str).collect();
     select(prompt, &refs)
 }

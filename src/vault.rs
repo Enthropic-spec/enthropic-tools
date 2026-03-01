@@ -8,9 +8,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 fn home_dir() -> PathBuf {
-    std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("."))
+    std::env::var("HOME").map_or_else(|_| PathBuf::from("."), PathBuf::from)
 }
 
 fn key_dir() -> PathBuf {
@@ -18,11 +16,11 @@ fn key_dir() -> PathBuf {
 }
 
 fn key_path(project: &str) -> PathBuf {
-    key_dir().join(format!("{}.key", project))
+    key_dir().join(format!("{project}.key"))
 }
 
 fn secrets_path(project: &str) -> PathBuf {
-    key_dir().join(format!("{}.secrets", project))
+    key_dir().join(format!("{project}.secrets"))
 }
 
 fn get_or_create_key(project: &str) -> Result<[u8; 32]> {
@@ -60,7 +58,7 @@ fn encrypt_data(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>> {
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = cipher
         .encrypt(nonce, data)
-        .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Encryption failed: {e}"))?;
     let mut result = nonce_bytes.to_vec();
     result.extend_from_slice(&ciphertext);
     Ok(result)
@@ -75,7 +73,7 @@ fn decrypt_data(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(Key::from_slice(key));
     cipher
         .decrypt(nonce, ciphertext)
-        .map_err(|e| anyhow::anyhow!("Decryption failed: {}", e))
+        .map_err(|e| anyhow::anyhow!("Decryption failed: {e}"))
 }
 
 fn load_secrets(project: &str) -> Result<HashMap<String, String>> {
@@ -107,7 +105,7 @@ fn save_secrets(project: &str, secrets: &HashMap<String, String>) -> Result<()> 
     Ok(())
 }
 
-pub fn generate_vault_file(project: &str, secret_names: &[String]) -> Result<String> {
+pub fn generate_vault_file(project: &str, secret_names: &[String]) -> String {
     let existing = load_secrets(project).unwrap_or_default();
     let mut lines: Vec<String> = vec![format!("VAULT {}", project), String::new()];
 
@@ -120,16 +118,16 @@ pub fn generate_vault_file(project: &str, secret_names: &[String]) -> Result<Str
             } else {
                 "UNSET"
             };
-            lines.push(format!("  {:<28} {}", name, status));
+            lines.push(format!("  {name:<28} {status}"));
         }
     }
     lines.push(String::new());
-    Ok(lines.join("\n"))
+    lines.join("\n")
 }
 
 pub fn refresh_vault_file(project: &str, secret_names: &[String], directory: &Path) -> Result<()> {
-    let vault_path = directory.join(format!("vault_{}.enth", project));
-    let content = generate_vault_file(project, secret_names)?;
+    let vault_path = directory.join(format!("vault_{project}.enth"));
+    let content = generate_vault_file(project, secret_names);
     std::fs::write(&vault_path, content)?;
     Ok(())
 }
@@ -156,7 +154,7 @@ pub fn delete_secret(
 ) -> Result<()> {
     let mut secrets = load_secrets(project)?;
     if !secrets.contains_key(key) {
-        anyhow::bail!("Key '{}' not found in vault", key);
+        anyhow::bail!("Key '{key}' not found in vault");
     }
     secrets.remove(key);
     save_secrets(project, &secrets)?;
@@ -173,7 +171,7 @@ pub fn export_env(project: &str) -> Result<String> {
     let secrets = load_secrets(project)?;
     let lines: Vec<String> = secrets
         .iter()
-        .map(|(k, v)| format!("{}=\"{}\"", k, v))
+        .map(|(k, v)| format!("{k}=\"{v}\""))
         .collect();
     Ok(lines.join("\n"))
 }

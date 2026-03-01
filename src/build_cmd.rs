@@ -100,33 +100,28 @@ When outputting the spec, use exactly the format in the reference below. Use rea
 Do not write code. Do not suggest implementation details. Only the spec.
 "#;
 
+#[allow(clippy::too_many_lines)]
 pub fn run(file: Option<&PathBuf>) -> Result<()> {
     tui::print_header();
 
     let cfg = global_config::load_config();
-    let provider = match cfg.provider.as_deref() {
-        Some(p) => p.to_string(),
-        None => {
-            tui::print_error("No provider configured. Run  enthropic setup  first.");
-            return Ok(());
-        }
+    let provider = if let Some(p) = cfg.provider.as_deref() {
+        p.to_string()
+    } else {
+        tui::print_error("No provider configured. Run  enthropic setup  first.");
+        return Ok(());
     };
-    let model = match cfg.model.as_deref() {
-        Some(m) => m.to_string(),
-        None => {
-            tui::print_error("No model configured. Run  enthropic setup  first.");
-            return Ok(());
-        }
+    let model = if let Some(m) = cfg.model.as_deref() {
+        m.to_string()
+    } else {
+        tui::print_error("No model configured. Run  enthropic setup  first.");
+        return Ok(());
     };
-    let api_key = match global_config::get_api_key(&provider)? {
-        Some(k) => k,
-        None => {
-            tui::print_error(&format!(
-                "No API key found for {}. Run  enthropic setup  first.",
-                provider
-            ));
-            return Ok(());
-        }
+    let Some(api_key) = global_config::get_api_key(&provider)? else {
+        tui::print_error(&format!(
+            "No API key found for {provider}. Run  enthropic setup  first."
+        ));
+        return Ok(());
     };
 
     let system_prompt = SYSTEM_CONSULTANT.to_string() + SPEC_FORMAT;
@@ -146,19 +141,18 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
             dim.apply_to(&provider),
             dim.apply_to(&model)
         );
-        println!("{}", sep);
+        println!("{sep}");
         println!("  Existing spec found.");
-        println!("{}\n", sep);
+        println!("{sep}\n");
 
         let refine = tui::confirm("Refine existing spec with AI?")?;
         if refine {
             let spec_text = std::fs::read_to_string(spec_path)?;
             let opener = format!(
-                "I'm loading your existing spec for review.\n\n```enth\n{}\n```\n\nTell me what you want to change or extend, or ask me to review it for completeness.",
-                spec_text
+                "I'm loading your existing spec for review.\n\n```enth\n{spec_text}\n```\n\nTell me what you want to change or extend, or ask me to review it for completeness."
             );
             let prefix = tui::pink().apply_to("🧠  ›");
-            println!("{} {}\n", prefix, opener);
+            println!("{prefix} {opener}\n");
             history.push(Message {
                 role: "assistant".to_string(),
                 content: opener,
@@ -175,7 +169,7 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
             dim.apply_to(&provider),
             dim.apply_to(&model)
         );
-        println!("{}", sep);
+        println!("{sep}");
         println!("  Spec consultant — design your .enth through conversation.");
         println!();
         println!(
@@ -184,7 +178,7 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
             dim.apply_to("·"),
             dim.apply_to("exit → end session")
         );
-        println!("{}\n", sep);
+        println!("{sep}\n");
         print_opener();
     }
 
@@ -243,9 +237,9 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
 
         match response {
             Ok(reply) => {
-                println!("{}", divider);
+                println!("{divider}");
                 let prefix = tui::pink().apply_to("🧠  ›");
-                println!("{} {}", prefix, reply);
+                println!("{prefix} {reply}");
 
                 // detect ```enth block
                 if let Some(spec) = extract_enth_block(&reply) {
@@ -253,7 +247,7 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
                     println!();
                     tui::print_success("Spec ready. Type  save  to write it to disk.");
                 }
-                println!("{}\n", divider);
+                println!("{divider}\n");
 
                 history.push(Message {
                     role: "assistant".to_string(),
@@ -261,7 +255,7 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
                 });
             }
             Err(e) => {
-                tui::print_error(&format!("API error: {}  (session continues)", e));
+                tui::print_error(&format!("API error: {e}  (session continues)"));
                 tui::print_dim("  Try again or switch model with  enthropic setup.");
                 println!();
             }
@@ -273,7 +267,7 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
 
 fn print_opener() {
     let prefix = tui::pink().apply_to("🧠  ›");
-    println!("{} Tell me about the project you want to build.\n   What does it do, who uses it, what's the core problem it solves?\n", prefix);
+    println!("{prefix} Tell me about the project you want to build.\n   What does it do, who uses it, what's the core problem it solves?\n");
 }
 
 fn extract_enth_block(text: &str) -> Option<String> {
@@ -296,27 +290,27 @@ fn save_spec(content: &str) -> Result<()> {
     std::fs::write(&tmp, content)?;
     match crate::parser::parse(&tmp) {
         Ok(spec) => {
+            use crate::parser::ProjectValue;
             let _ = std::fs::remove_file(&tmp);
             // determine file name from spec NAME or default
-            use crate::parser::ProjectValue;
             let name = match spec.project.get("NAME") {
                 Some(ProjectValue::Str(s)) => s.trim_matches('"').to_lowercase().replace(' ', "_"),
                 _ => "enthropic".to_string(),
             };
-            let out_path = PathBuf::from(format!("{}.enth", name));
+            let out_path = PathBuf::from(format!("{name}.enth"));
             std::fs::write(&out_path, content)?;
             tui::print_success(&format!("Spec saved to {}", out_path.display()));
 
             // generate state + vault
             let state_content = crate::state::generate(&spec, &name);
-            let state_path = PathBuf::from(format!("state_{}.enth", name));
+            let state_path = PathBuf::from(format!("state_{name}.enth"));
             std::fs::write(&state_path, &state_content)?;
             tui::print_success(&format!("State file: {}", state_path.display()));
 
             if !spec.secrets.is_empty() {
                 let dir = std::path::Path::new(".");
                 crate::vault::refresh_vault_file(&name, &spec.secrets, dir)?;
-                tui::print_success(&format!("Vault file: vault_{}.enth", name));
+                tui::print_success(&format!("Vault file: vault_{name}.enth"));
             }
             println!();
             tui::print_dim(
@@ -326,7 +320,7 @@ fn save_spec(content: &str) -> Result<()> {
         }
         Err(e) => {
             let _ = std::fs::remove_file(&tmp);
-            tui::print_error(&format!("Spec has validation errors: {}", e));
+            tui::print_error(&format!("Spec has validation errors: {e}"));
             tui::print_dim("  Keep refining with the consultant before saving.");
         }
     }
@@ -356,7 +350,7 @@ fn call_api(
             system_prompt,
             history,
         ),
-        _ => anyhow::bail!("Unknown provider: {}", provider),
+        _ => anyhow::bail!("Unknown provider: {provider}"),
     }
 }
 
@@ -392,13 +386,13 @@ fn call_anthropic(
     let text = resp.text()?;
 
     if !status.is_success() {
-        anyhow::bail!("Anthropic API error {}: {}", status, text);
+        anyhow::bail!("Anthropic API error {status}: {text}");
     }
 
     let parsed: Value = serde_json::from_str(&text)?;
     let content = parsed["content"][0]["text"]
         .as_str()
-        .ok_or_else(|| anyhow::anyhow!("Unexpected Anthropic response shape: {}", text))?
+        .ok_or_else(|| anyhow::anyhow!("Unexpected Anthropic response shape: {text}"))?
         .to_string();
 
     Ok(content)
@@ -426,7 +420,7 @@ fn call_openai_compatible(
 
     let resp = client
         .post(base_url)
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Authorization", format!("Bearer {api_key}"))
         .header("content-type", "application/json")
         .json(&body)
         .send()?;
@@ -435,13 +429,13 @@ fn call_openai_compatible(
     let text = resp.text()?;
 
     if !status.is_success() {
-        anyhow::bail!("API error {}: {}", status, text);
+        anyhow::bail!("API error {status}: {text}");
     }
 
     let parsed: Value = serde_json::from_str(&text)?;
     let content = parsed["choices"][0]["message"]["content"]
         .as_str()
-        .ok_or_else(|| anyhow::anyhow!("Unexpected API response shape: {}", text))?
+        .ok_or_else(|| anyhow::anyhow!("Unexpected API response shape: {text}"))?
         .to_string();
 
     Ok(content)

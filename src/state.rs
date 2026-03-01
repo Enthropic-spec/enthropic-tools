@@ -33,7 +33,7 @@ pub fn generate(spec: &EnthSpec, project_name: &str) -> String {
     if !checks.is_empty() {
         lines.push("  CHECKS".to_string());
         for (name, source) in &checks {
-            lines.push(format!("    {:<28} UNVERIFIED   # {}", name, source));
+            lines.push(format!("    {name:<28} UNVERIFIED   # {source}"));
         }
         lines.push(String::new());
     }
@@ -41,7 +41,7 @@ pub fn generate(spec: &EnthSpec, project_name: &str) -> String {
     if !spec.entities.is_empty() {
         lines.push("  ENTITY".to_string());
         for entity in &spec.entities {
-            lines.push(format!("    {:<28} PENDING", entity));
+            lines.push(format!("    {entity:<28} PENDING"));
         }
         lines.push(String::new());
     }
@@ -49,7 +49,7 @@ pub fn generate(spec: &EnthSpec, project_name: &str) -> String {
     if !spec.flows.is_empty() {
         lines.push("  FLOWS".to_string());
         for name in &spec.flows_order {
-            lines.push(format!("    {:<28} PENDING", name));
+            lines.push(format!("    {name:<28} PENDING"));
         }
         lines.push(String::new());
     }
@@ -57,7 +57,7 @@ pub fn generate(spec: &EnthSpec, project_name: &str) -> String {
     if !spec.layers.is_empty() {
         lines.push("  LAYERS".to_string());
         for name in &spec.layers_order {
-            lines.push(format!("    {:<28} PENDING", name));
+            lines.push(format!("    {name:<28} PENDING"));
         }
         lines.push(String::new());
     }
@@ -85,7 +85,7 @@ pub fn set_status(path: &Path, key: &str, status: &str) -> Result<()> {
         if parts.len() == 2 && parts[0] == key && STATUS_VALUES.contains(&parts[1]) {
             let leading_len = line.len() - line.trim_start().len();
             let leading = &line[..leading_len];
-            result.push(format!("{}{:<28} {}", leading, key, status));
+            result.push(format!("{leading}{key:<28} {status}"));
             updated = true;
         } else {
             result.push(line.to_string());
@@ -93,7 +93,7 @@ pub fn set_status(path: &Path, key: &str, status: &str) -> Result<()> {
     }
 
     if !updated {
-        anyhow::bail!("Key '{}' not found in state file", key);
+        anyhow::bail!("Key '{key}' not found in state file");
     }
 
     std::fs::write(path, result.join("\n") + "\n")?;

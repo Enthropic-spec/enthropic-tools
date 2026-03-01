@@ -144,8 +144,11 @@ fn vault_project(file: Option<&PathBuf>) -> Result<(String, PathBuf, Vec<String>
     let spec_path = resolve_spec(file)?;
     let spec = parser::parse(&spec_path)?;
     let name = project_name(&spec, &spec_path);
-    let dir = spec_path.parent().unwrap_or(Path::new(".")).to_path_buf();
-    Ok((name, dir, spec.secrets.clone()))
+    let dir = spec_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
+    Ok((name, dir, spec.secrets))
 }
 
 fn main() {
@@ -158,13 +161,13 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
-    match cli.command {
-        None => {
+    cli.command.map_or_else(
+        || {
             tui::print_header();
             print_help();
             Ok(())
-        }
-        Some(cmd) => match cmd {
+        },
+        |cmd| match cmd {
             Commands::Validate { file } => {
                 tui::print_header();
                 cmd_validate(file.as_ref())
@@ -206,7 +209,7 @@ fn run() -> Result<()> {
             Commands::Build { file } => build_cmd::run(file.as_ref()),
             Commands::Serve => mcp::serve(),
         },
-    }
+    )
 }
 
 fn print_help() {
@@ -305,10 +308,10 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
     println!("{} {} — valid", "✓".green(), path.display());
 
     let name = project_name(&spec, &path);
-    let dir = path.parent().unwrap_or(Path::new("."));
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
 
     // Auto-create state file if missing
-    let state_path = dir.join(format!("state_{}.enth", name));
+    let state_path = dir.join(format!("state_{name}.enth"));
     if !state_path.exists() {
         let content = state::generate(&spec, &name);
         std::fs::write(&state_path, content)?;
@@ -323,7 +326,7 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
     }
 
     // Always regenerate vault status file
-    let vault_path = dir.join(format!("vault_{}.enth", name));
+    let vault_path = dir.join(format!("vault_{name}.enth"));
     let vault_existed = vault_path.exists();
     vault::refresh_vault_file(&name, &spec.secrets, dir)?;
     let vault_action = if vault_existed { "updated" } else { "created" };
@@ -339,10 +342,7 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
 
     // Auto-create/update .gitignore
     let gitignore_path = dir.join(".gitignore");
-    if !gitignore_path.exists() {
-        std::fs::write(&gitignore_path, "vault_*.enth\nstate_*.enth\n.env\n")?;
-        println!("{}", "  created .gitignore".dimmed());
-    } else {
+    if gitignore_path.exists() {
         let existing = std::fs::read_to_string(&gitignore_path)?;
         let additions: Vec<&str> = ["vault_*.enth", "state_*.enth"]
             .iter()
@@ -354,6 +354,9 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
             std::fs::write(&gitignore_path, new_content)?;
             println!("{}", "  updated .gitignore".dimmed());
         }
+    } else {
+        std::fs::write(&gitignore_path, "vault_*.enth\nstate_*.enth\n.env\n")?;
+        println!("{}", "  created .gitignore".dimmed());
     }
 
     Ok(())
@@ -364,8 +367,8 @@ fn cmd_context(file: Option<&PathBuf>, out: Option<&PathBuf>) -> Result<()> {
     let spec = parser::parse(&path)?;
 
     let name = project_name(&spec, &path);
-    let dir = path.parent().unwrap_or(Path::new("."));
-    let candidate = dir.join(format!("state_{}.enth", name));
+    let dir = path.parent().unwrap_or_else(|| Path::new("."));
+    let candidate = dir.join(format!("state_{name}.enth"));
     let state_path = if candidate.exists() {
         Some(candidate)
     } else {
@@ -378,7 +381,7 @@ fn cmd_context(file: Option<&PathBuf>, out: Option<&PathBuf>) -> Result<()> {
         std::fs::write(out_path, &result)?;
         println!("{} Context written to {}", "✓".green(), out_path.display());
     } else {
-        print!("{}", result);
+        print!("{result}");
     }
 
     Ok(())
@@ -389,8 +392,7 @@ fn cmd_state_show(file: Option<&PathBuf>) -> Result<()> {
         let is_state_file = f
             .file_name()
             .and_then(|n| n.to_str())
-            .map(|n| n.starts_with("state_"))
-            .unwrap_or(false);
+            .is_some_and(|n| n.starts_with("state_"));
         if is_state_file {
             f.clone()
         } else {
@@ -398,16 +400,16 @@ fn cmd_state_show(file: Option<&PathBuf>) -> Result<()> {
             let spec = parser::parse(&path)?;
             let name = project_name(&spec, &path);
             path.parent()
-                .unwrap_or(Path::new("."))
-                .join(format!("state_{}.enth", name))
+                .unwrap_or_else(|| Path::new("."))
+                .join(format!("state_{name}.enth"))
         }
     } else {
         let path = resolve_spec(None)?;
         let spec = parser::parse(&path)?;
         let name = project_name(&spec, &path);
         path.parent()
-            .unwrap_or(Path::new("."))
-            .join(format!("state_{}.enth", name))
+            .unwrap_or_else(|| Path::new("."))
+            .join(format!("state_{name}.enth"))
     };
 
     if !state_path.exists() {
@@ -428,8 +430,8 @@ fn cmd_state_set(key: &str, status: &str, file: Option<&PathBuf>) -> Result<()> 
     let name = project_name(&spec, &spec_path);
     let state_path = spec_path
         .parent()
-        .unwrap_or(Path::new("."))
-        .join(format!("state_{}.enth", name));
+        .unwrap_or_else(|| Path::new("."))
+        .join(format!("state_{name}.enth"));
 
     if !state_path.exists() {
         eprintln!(
@@ -503,7 +505,7 @@ fn cmd_vault_export(out: Option<&PathBuf>, file: Option<&PathBuf>) -> Result<()>
                 std::fs::write(out_path, &result)?;
                 println!("{} Exported to {}", "✓".green(), out_path.display());
             } else {
-                println!("{}", result);
+                println!("{result}");
             }
         }
         Err(e) => {

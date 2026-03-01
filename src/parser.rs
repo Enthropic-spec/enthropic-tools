@@ -72,11 +72,7 @@ pub struct EnthSpec {
 }
 
 fn strip_comment(line: &str) -> &str {
-    if let Some(idx) = line.find('#') {
-        &line[..idx]
-    } else {
-        line
-    }
+    line.find('#').map_or(line, |idx| &line[..idx])
 }
 
 fn indent_len(line: &str) -> usize {
@@ -337,8 +333,7 @@ fn parse_contracts(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
         } else if let Some(ref flow_name) = current_flow.clone() {
             let (first, rest) = tok
                 .split_once(|c: char| c.is_whitespace())
-                .map(|(f, r)| (f.trim(), r.trim()))
-                .unwrap_or((tok, ""));
+                .map_or((tok, ""), |(f, r)| (f.trim(), r.trim()));
 
             if first.ends_with('.') && first[..first.len() - 1].chars().all(|c| c.is_ascii_digit())
             {

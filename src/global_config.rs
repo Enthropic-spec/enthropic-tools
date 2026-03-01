@@ -15,9 +15,7 @@ pub struct GlobalConfig {
 }
 
 fn home_dir() -> PathBuf {
-    std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("."))
+    std::env::var("HOME").map_or_else(|_| PathBuf::from("."), PathBuf::from)
 }
 
 fn config_dir() -> PathBuf {
@@ -96,7 +94,7 @@ fn encrypt_data(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>> {
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = cipher
         .encrypt(nonce, data)
-        .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Encryption failed: {e}"))?;
     let mut result = nonce_bytes.to_vec();
     result.extend_from_slice(&ciphertext);
     Ok(result)
@@ -111,7 +109,7 @@ fn decrypt_data(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new(Key::from_slice(key));
     cipher
         .decrypt(nonce, ciphertext)
-        .map_err(|e| anyhow::anyhow!("Decryption failed: {}", e))
+        .map_err(|e| anyhow::anyhow!("Decryption failed: {e}"))
 }
 
 fn load_api_keys() -> Result<HashMap<String, String>> {

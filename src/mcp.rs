@@ -32,21 +32,21 @@ pub fn serve() -> Result<()> {
         let params = &msg["params"];
 
         let response = match method {
-            "initialize" => handle_initialize(id),
-            "tools/list" => handle_tools_list(id),
-            "tools/call" => handle_tools_call(id, params),
+            "initialize" => handle_initialize(&id),
+            "tools/list" => handle_tools_list(&id),
+            "tools/call" => handle_tools_call(&id, params),
             "ping" => json!({"jsonrpc":"2.0","id":id,"result":{}}),
-            _ => error_response(id, -32601, "Method not found"),
+            _ => error_response(&id, -32601, "Method not found"),
         };
 
-        writeln!(out, "{}", response)?;
+        writeln!(out, "{response}")?;
         out.flush()?;
     }
 
     Ok(())
 }
 
-fn handle_initialize(id: Value) -> Value {
+fn handle_initialize(id: &Value) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": id,
@@ -63,7 +63,7 @@ fn handle_initialize(id: Value) -> Value {
     })
 }
 
-fn handle_tools_list(id: Value) -> Value {
+fn handle_tools_list(id: &Value) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": id,
@@ -126,7 +126,7 @@ fn handle_tools_list(id: Value) -> Value {
     })
 }
 
-fn handle_tools_call(id: Value, params: &Value) -> Value {
+fn handle_tools_call(id: &Value, params: &Value) -> Value {
     let name = params["name"].as_str().unwrap_or("");
     let args = &params["arguments"];
 
@@ -135,19 +135,17 @@ fn handle_tools_call(id: Value, params: &Value) -> Value {
         "get_context" => tool_get_context(id, args),
         "validate_spec" => tool_validate_spec(id, args),
         "spec_summary" => tool_spec_summary(id, args),
-        _ => error_response(id, -32602, &format!("Unknown tool: {}", name)),
+        _ => error_response(id, -32602, &format!("Unknown tool: {name}")),
     }
 }
 
 fn resolve_path(args: &Value) -> PathBuf {
-    if let Some(p) = args["path"].as_str() {
-        PathBuf::from(p)
-    } else {
-        PathBuf::from("enthropic.enth")
-    }
+    args["path"]
+        .as_str()
+        .map_or_else(|| PathBuf::from("enthropic.enth"), PathBuf::from)
 }
 
-fn tool_read_spec(id: Value, args: &Value) -> Value {
+fn tool_read_spec(id: &Value, args: &Value) -> Value {
     let path = resolve_path(args);
     match std::fs::read_to_string(&path) {
         Ok(content) => tool_ok(id, &content),
@@ -155,11 +153,11 @@ fn tool_read_spec(id: Value, args: &Value) -> Value {
     }
 }
 
-fn tool_get_context(id: Value, args: &Value) -> Value {
+fn tool_get_context(id: &Value, args: &Value) -> Value {
     let path = resolve_path(args);
     let spec = match parser::parse(&path) {
         Ok(s) => s,
-        Err(e) => return tool_error(id, &format!("Parse error: {}", e)),
+        Err(e) => return tool_error(id, &format!("Parse error: {e}")),
     };
 
     // look for state file alongside spec
@@ -173,8 +171,8 @@ fn tool_get_context(id: Value, args: &Value) -> Value {
                 .unwrap_or("project")
                 .to_string(),
         };
-        let dir = path.parent().unwrap_or(std::path::Path::new("."));
-        let candidate = dir.join(format!("state_{}.enth", name));
+        let dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+        let candidate = dir.join(format!("state_{name}.enth"));
         if candidate.exists() {
             Some(candidate)
         } else {
@@ -184,15 +182,15 @@ fn tool_get_context(id: Value, args: &Value) -> Value {
 
     match context::generate(&spec, state_path.as_deref()) {
         Ok(ctx) => tool_ok(id, &ctx),
-        Err(e) => tool_error(id, &format!("Context error: {}", e)),
+        Err(e) => tool_error(id, &format!("Context error: {e}")),
     }
 }
 
-fn tool_validate_spec(id: Value, args: &Value) -> Value {
+fn tool_validate_spec(id: &Value, args: &Value) -> Value {
     let path = resolve_path(args);
     let spec = match parser::parse(&path) {
         Ok(s) => s,
-        Err(e) => return tool_ok(id, &format!("PARSE ERROR: {}", e)),
+        Err(e) => return tool_ok(id, &format!("PARSE ERROR: {e}")),
     };
     let errors = validator::validate(&spec);
     if errors.is_empty() {
@@ -206,14 +204,14 @@ fn tool_validate_spec(id: Value, args: &Value) -> Value {
     }
 }
 
-fn tool_spec_summary(id: Value, args: &Value) -> Value {
+fn tool_spec_summary(id: &Value, args: &Value) -> Value {
+    use crate::parser::ProjectValue;
     let path = resolve_path(args);
     let spec = match parser::parse(&path) {
         Ok(s) => s,
-        Err(e) => return tool_error(id, &format!("Parse error: {}", e)),
+        Err(e) => return tool_error(id, &format!("Parse error: {e}")),
     };
 
-    use crate::parser::ProjectValue;
     let name = spec
         .project
         .get("NAME")
@@ -275,7 +273,7 @@ fn tool_spec_summary(id: Value, args: &Value) -> Value {
     tool_ok(id, &summary)
 }
 
-fn tool_ok(id: Value, text: &str) -> Value {
+fn tool_ok(id: &Value, text: &str) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": id,
@@ -285,7 +283,7 @@ fn tool_ok(id: Value, text: &str) -> Value {
     })
 }
 
-fn tool_error(id: Value, msg: &str) -> Value {
+fn tool_error(id: &Value, msg: &str) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": id,
@@ -296,7 +294,7 @@ fn tool_error(id: Value, msg: &str) -> Value {
     })
 }
 
-fn error_response(id: Value, code: i32, msg: &str) -> Value {
+fn error_response(id: &Value, code: i32, msg: &str) -> Value {
     json!({
         "jsonrpc": "2.0",
         "id": id,

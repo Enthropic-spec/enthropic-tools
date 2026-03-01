@@ -16,7 +16,7 @@ fn fetch_anthropic_models(api_key: &str) -> Vec<String> {
                 if let Some(data) = json["data"].as_array() {
                     let mut models: Vec<String> = data
                         .iter()
-                        .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+                        .filter_map(|m| m["id"].as_str().map(std::string::ToString::to_string))
                         .collect();
                     models.sort();
                     models.reverse(); // newest first
@@ -33,7 +33,7 @@ fn fetch_openai_models(api_key: &str) -> Vec<String> {
     let client = reqwest::blocking::Client::new();
     let resp = client
         .get("https://api.openai.com/v1/models")
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Authorization", format!("Bearer {api_key}"))
         .send();
     match resp {
         Ok(r) if r.status().is_success() => {
@@ -41,7 +41,7 @@ fn fetch_openai_models(api_key: &str) -> Vec<String> {
                 if let Some(data) = json["data"].as_array() {
                     let mut models: Vec<String> = data
                         .iter()
-                        .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+                        .filter_map(|m| m["id"].as_str().map(std::string::ToString::to_string))
                         .filter(|id| {
                             id.starts_with("gpt-") || id.starts_with("o1") || id.starts_with("o3")
                         })
@@ -73,7 +73,7 @@ fn fetch_openrouter_models() -> Vec<String> {
                 if let Some(data) = json["data"].as_array() {
                     let mut models: Vec<String> = data
                         .iter()
-                        .filter_map(|m| m["id"].as_str().map(|s| s.to_string()))
+                        .filter_map(|m| m["id"].as_str().map(std::string::ToString::to_string))
                         .collect();
                     models.sort();
                     return models;
@@ -99,7 +99,7 @@ fn select_model(provider: &str, api_key: &str) -> Result<String> {
         return tui::input("Model name");
     }
 
-    let items: Vec<&str> = models.iter().map(|s| s.as_str()).collect();
+    let items: Vec<&str> = models.iter().map(std::string::String::as_str).collect();
     let idx = tui::select("Default model", &items)?;
     Ok(models[idx].clone())
 }
@@ -136,7 +136,7 @@ pub fn run() -> Result<()> {
     let provider = PROVIDERS[provider_idx];
     println!();
 
-    let api_key = tui::password(&format!("API key for {}", provider))?;
+    let api_key = tui::password(&format!("API key for {provider}"))?;
     println!();
 
     let model = select_model(provider, &api_key)?;
@@ -146,16 +146,13 @@ pub fn run() -> Result<()> {
 
     let new_cfg = global_config::GlobalConfig {
         provider: Some(provider.to_string()),
-        model: Some(model.to_string()),
+        model: Some(model.clone()),
     };
     global_config::save_config(&new_cfg)?;
 
     println!();
     tui::print_success("Key stored encrypted in ~/.enthropic/global.keys");
-    tui::print_success(&format!(
-        "Config saved  provider={}  model={}",
-        provider, model
-    ));
+    tui::print_success(&format!("Config saved  provider={provider}  model={model}"));
     println!();
 
     let create_now = tui::confirm("Create a new project now?")?;

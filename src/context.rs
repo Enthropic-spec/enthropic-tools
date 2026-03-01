@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::path::Path;
 
 const PREAMBLE_TEMPLATE: &str = "\
-=== ENTHROPIC CONTEXT {version} ===
+=== ENTHROPIC CONTEXT __version__ ===
 
 This project uses the Enthropic specification format.
 Read the spec below before generating any code.
@@ -30,7 +30,7 @@ pub fn generate(spec: &EnthSpec, state_path: Option<&Path>) -> Result<String> {
     } else {
         &spec.version
     };
-    let preamble = PREAMBLE_TEMPLATE.replace("{version}", version);
+    let preamble = PREAMBLE_TEMPLATE.replace("__version__", version);
 
     let spec_content = std::fs::read_to_string(&spec.source_file)?;
     let mut output = preamble + &spec_content;
