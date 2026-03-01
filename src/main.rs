@@ -17,10 +17,10 @@ use colored::Colorize;
 use parser::{EnthSpec, ProjectValue};
 
 #[derive(Parser)]
-#[command(name = "enthropic", about = "Enthropic — toolkit for the .enth architectural specification format.")]
+#[command(name = "enthropic", about = "Enthropic — toolkit for the .enth architectural specification format.", disable_help_subcommand = true)]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -157,6 +157,12 @@ fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        None => {
+            tui::print_header();
+            print_help();
+            Ok(())
+        }
+        Some(cmd) => match cmd {
         Commands::Validate { file } => {
             tui::print_header();
             cmd_validate(file.as_ref())
@@ -196,7 +202,28 @@ fn run() -> Result<()> {
         Commands::Setup => setup::run(),
         Commands::New => new_wizard::run(),
         Commands::Build { file } => build_cmd::run(file.as_ref()),
+        }
     }
+}
+
+fn print_help() {
+    let pk = tui::pink();
+    let dim = tui::dimmed();
+    let bold = tui::bold_white();
+    println!("  {}", bold.apply_to("Commands"));
+    println!();
+    println!("    {}    {}", pk.apply_to("setup     "), dim.apply_to("Configure AI provider and API key"));
+    println!("    {}    {}", pk.apply_to("new       "), dim.apply_to("Quick wizard to scaffold a new .enth file"));
+    println!("    {}    {}", pk.apply_to("build     "), dim.apply_to("AI spec consultant — design your .enth through conversation"));
+    println!("    {}    {}", pk.apply_to("validate  "), dim.apply_to("Validate an .enth file against the spec rules"));
+    println!("    {}    {}", pk.apply_to("context   "), dim.apply_to("Generate AI context block from a spec"));
+    println!("    {}    {}", pk.apply_to("state     "), dim.apply_to("Manage project build state (show / set)"));
+    println!("    {}    {}", pk.apply_to("vault     "), dim.apply_to("Manage encrypted project secrets (set / keys / export)"));
+    println!();
+    println!("  {}", bold.apply_to("Quick start"));
+    println!();
+    println!("    {}  →  {}  →  {}", pk.apply_to("enthropic setup"), pk.apply_to("enthropic build"), dim.apply_to("get your .enth"));
+    println!();
 }
 
 fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {

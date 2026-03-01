@@ -171,13 +171,19 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
             dim.apply_to(&model)
         );
         println!("{}", sep);
-        println!("  Spec consultant — I'll help you design a complete .enth for your project.");
-        println!("  Type  save  to write the last spec to disk.  Type  exit  to quit.");
+        println!("  Spec consultant — design your .enth through conversation.");
+        println!();
+        println!("  {}  {}  {}",
+            dim.apply_to("save → write spec to disk"),
+            dim.apply_to("·"),
+            dim.apply_to("exit → end session")
+        );
         println!("{}\n", sep);
         print_opener();
     }
 
     let mut last_spec_block: Option<String> = None;
+    let divider = tui::dimmed().apply_to("  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·  ·");
 
     loop {
         print!("{} ", tui::bold_white().apply_to("You ›"));
@@ -190,8 +196,14 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
         if user_input.is_empty() { continue; }
 
         if user_input == "exit" || user_input == "quit" {
-            tui::print_dim("\n  Session ended.");
-            break;
+            println!();
+            let confirm = tui::confirm("Exit session? Unsaved spec will be lost.")?;
+            if confirm {
+                tui::print_dim("  Session ended.");
+                println!();
+                break;
+            }
+            continue;
         }
 
         if user_input == "save" {
@@ -219,20 +231,24 @@ pub fn run(file: Option<&PathBuf>) -> Result<()> {
 
         match response {
             Ok(reply) => {
+                println!("{}", divider);
                 let prefix = tui::pink().apply_to("🧠  ›");
-                println!("{} {}\n", prefix, reply);
+                println!("{} {}", prefix, reply);
 
                 // detect ```enth block
                 if let Some(spec) = extract_enth_block(&reply) {
                     last_spec_block = Some(spec);
-                    tui::print_dim("  Spec detected. Type  save  to write it to disk.");
                     println!();
+                    tui::print_success("Spec ready. Type  save  to write it to disk.");
                 }
+                println!("{}\n", divider);
 
                 history.push(Message { role: "assistant".to_string(), content: reply });
             }
             Err(e) => {
-                tui::print_error(&format!("API error: {}", e));
+                tui::print_error(&format!("API error: {}  (session continues)", e));
+                tui::print_dim("  Try again or switch model with  enthropic setup.");
+                println!();
             }
         }
     }
