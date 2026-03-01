@@ -119,18 +119,30 @@ def parse(path: Path) -> EnthSpec:
 
 def _parse_project(lines: list[str], start: int, spec: EnthSpec) -> int:
     i = start
+    in_deps = False
     while i < len(lines):
         clean = _strip_comment(lines[i])
         tok = clean.strip()
         if not tok:
             i += 1
             continue
-        if _indent(clean) == 0:
+        ind = _indent(clean)
+        if ind == 0:
             return i
-        parts = tok.split(None, 1)
-        if len(parts) == 2:
-            key, val = parts[0], parts[1].strip('"').strip()
-            spec.project[key] = _list(val) if key == "STACK" else val
+        if ind <= 2:
+            in_deps = (tok == "DEPS")
+            if not in_deps:
+                parts = tok.split(None, 1)
+                if len(parts) == 2:
+                    key, val = parts[0], parts[1].strip('"').strip()
+                    spec.project[key] = _list(val) if key == "STACK" else val
+        elif in_deps:  # indent > 2, inside DEPS
+            parts = tok.split(None, 1)
+            if len(parts) == 2:
+                dep_key, val = parts[0], parts[1]
+                if dep_key in ("SYSTEM", "RUNTIME", "DEV"):
+                    existing = spec.project.setdefault("DEPS", {})
+                    existing[dep_key] = _list(val)
         i += 1
     return i
 
