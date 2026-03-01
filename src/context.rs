@@ -1,10 +1,8 @@
-from __future__ import annotations
+use std::path::Path;
+use anyhow::Result;
+use crate::parser::EnthSpec;
 
-from pathlib import Path
-
-from .parser import EnthSpec
-
-_PREAMBLE = """\
+const PREAMBLE_TEMPLATE: &str = "\
 === ENTHROPIC CONTEXT {version} ===
 
 This project uses the Enthropic specification format.
@@ -24,17 +22,24 @@ RULES:
 
 === PROJECT SPEC ===
 
-"""
+";
 
+pub fn generate(spec: &EnthSpec, state_path: Option<&Path>) -> Result<String> {
+    let version = if spec.version.is_empty() { "0.1.0" } else { &spec.version };
+    let preamble = PREAMBLE_TEMPLATE.replace("{version}", version);
 
-def generate(spec: EnthSpec, state_path: Path | None = None) -> str:
-    output = _PREAMBLE.format(version=spec.version or "0.1.0")
-    output += Path(spec.source_file).read_text(encoding="utf-8")
+    let spec_content = std::fs::read_to_string(&spec.source_file)?;
+    let mut output = preamble + &spec_content;
 
-    if state_path and state_path.exists():
-        output += "\n\n=== CURRENT BUILD STATE ===\n\n"
-        output += state_path.read_text(encoding="utf-8")
-        output += "\n\nOnly implement entities, flows, and layers marked PENDING or PARTIAL."
-        output += "\nDo not re-implement anything marked BUILT."
+    if let Some(sp) = state_path {
+        if sp.exists() {
+            let state_content = std::fs::read_to_string(sp)?;
+            output.push_str("\n\n=== CURRENT BUILD STATE ===\n\n");
+            output.push_str(&state_content);
+            output.push_str("\n\nOnly implement entities, flows, and layers marked PENDING or PARTIAL.");
+            output.push_str("\nDo not re-implement anything marked BUILT.");
+        }
+    }
 
-    return output
+    Ok(output)
+}

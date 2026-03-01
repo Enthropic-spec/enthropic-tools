@@ -1,8 +1,2 @@
-vault_*.enth
-state_*.enth
-.venv/
-__pycache__/
-*.pyc
-*.egg-info/
-dist/
+/target
 .env
