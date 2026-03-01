@@ -277,10 +277,9 @@ fn cmd_validate(file: Option<&PathBuf>) -> Result<()> {
         let rule_w = 6;
         let sev_w = 9;
         println!(
-            "{:<rule_w$} {:<sev_w$} {}",
+            "{:<rule_w$} {:<sev_w$} Message",
             "Rule",
             "Severity",
-            "Message",
             rule_w = rule_w,
             sev_w = sev_w
         );

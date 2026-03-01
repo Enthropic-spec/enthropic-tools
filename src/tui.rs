@@ -54,6 +54,7 @@ pub fn print_error(msg: &str) {
     eprintln!("{} {}", error_red().apply_to("✗"), msg);
 }
 
+#[allow(dead_code)]
 pub fn print_info(msg: &str) {
     println!("{}", bold_white().apply_to(msg));
 }
@@ -97,6 +98,7 @@ pub fn select(prompt: &str, items: &[&str]) -> Result<usize> {
     Ok(result)
 }
 
+#[allow(dead_code)]
 pub fn select_string(prompt: &str, items: &[String]) -> Result<usize> {
     let refs: Vec<&str> = items.iter().map(|s| s.as_str()).collect();
     select(prompt, &refs)

@@ -1,0 +1,48 @@
+name: SLSA Provenance
+
+on:
+  release:
+    types: [published]
+
+permissions: read-all
+
+jobs:
+  build:
+    name: Build release binary
+    runs-on: ubuntu-latest
+    outputs:
+      binary-digest: ${{ steps.hash.outputs.hash }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Compute hash
+        id: hash
+        run: |
+          sha256sum target/release/enthropic > checksums.txt
+          echo "hash=$(base64 -w0 checksums.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: enthropic-linux-amd64
+          path: |
+            target/release/enthropic
+            checksums.txt
+          if-no-files-found: error
+
+  provenance:
+    name: Generate SLSA provenance
+    needs: [build]
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: ${{ needs.build.outputs.binary-digest }}
+      upload-assets: true

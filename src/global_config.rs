@@ -38,7 +38,7 @@ fn global_keys_path() -> PathBuf {
 
 fn ensure_dir() -> Result<()> {
     std::fs::create_dir_all(config_dir())
-        .with_context(|| format!("Failed to create ~/.enthropic directory"))?;
+        .with_context(|| "Failed to create ~/.enthropic directory")?;
     Ok(())
 }
 
@@ -78,7 +78,7 @@ fn get_or_create_global_key() -> Result<[u8; 32]> {
 
     let mut key = [0u8; 32];
     rand::thread_rng().fill_bytes(&mut key);
-    std::fs::write(&kp, &key)?;
+    std::fs::write(&kp, key)?;
 
     #[cfg(unix)]
     {

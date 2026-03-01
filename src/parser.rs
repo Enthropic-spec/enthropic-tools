@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 pub struct Transform {
     pub source: String,
     pub target: String,
+    #[allow(dead_code)]
     pub actions: Vec<String>,
 }
 
@@ -23,7 +24,9 @@ pub struct Layer {
 #[derive(Debug, Clone)]
 pub struct Contract {
     pub subject: String,
+    #[allow(dead_code)]
     pub keyword: String,
+    #[allow(dead_code)]
     pub qualifier: String,
 }
 
@@ -31,6 +34,7 @@ pub struct Contract {
 pub struct FlowStep {
     pub number: usize,
     pub subject: String,
+    #[allow(dead_code)]
     pub action: String,
 }
 
@@ -76,7 +80,7 @@ fn strip_comment(line: &str) -> &str {
 }
 
 fn indent_len(line: &str) -> usize {
-    line.len() - line.trim_start_matches(|c| c == ' ' || c == '\t').len()
+    line.len() - line.trim_start_matches([' ', '\t']).len()
 }
 
 pub fn split_list(s: &str) -> Vec<String> {
@@ -90,8 +94,10 @@ pub fn parse(path: &Path) -> Result<EnthSpec> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read {}", path.display()))?;
     let lines: Vec<&str> = content.lines().collect();
-    let mut spec = EnthSpec::default();
-    spec.source_file = path.to_path_buf();
+    let mut spec = EnthSpec {
+        source_file: path.to_path_buf(),
+        ..Default::default()
+    };
 
     let mut i = 0;
     while i < lines.len() {
@@ -106,12 +112,12 @@ pub fn parse(path: &Path) -> Result<EnthSpec> {
             i += 1;
             continue;
         }
-        if tok.starts_with("VERSION ") {
-            spec.version = tok[8..].trim().to_string();
+        if let Some(stripped) = tok.strip_prefix("VERSION ") {
+            spec.version = stripped.trim().to_string();
             i += 1;
         } else if tok == "PROJECT" || tok.starts_with("PROJECT ") {
-            if tok.starts_with("PROJECT ") {
-                let name = tok[8..].trim().to_string();
+            if let Some(stripped) = tok.strip_prefix("PROJECT ") {
+                let name = stripped.trim().to_string();
                 spec.project
                     .entry("NAME".to_string())
                     .or_insert(ProjectValue::Str(name));
@@ -119,8 +125,8 @@ pub fn parse(path: &Path) -> Result<EnthSpec> {
             i = parse_project(&lines, i + 1, &mut spec);
         } else if tok == "VOCABULARY" {
             i = parse_vocabulary(&lines, i + 1, &mut spec);
-        } else if tok.starts_with("ENTITY ") {
-            spec.entities = split_list(&tok[7..]);
+        } else if let Some(stripped) = tok.strip_prefix("ENTITY ") {
+            spec.entities = split_list(stripped);
             i += 1;
         } else if tok == "TRANSFORM" {
             i = parse_transform(&lines, i + 1, &mut spec);
@@ -301,8 +307,8 @@ fn parse_contracts(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
             return i;
         }
         if ind <= 2 {
-            if tok.starts_with("FLOW ") {
-                let name = tok[5..].trim().to_string();
+            if let Some(stripped) = tok.strip_prefix("FLOW ") {
+                let name = stripped.trim().to_string();
                 current_flow = Some(name.clone());
                 spec.flows_order.push(name.clone());
                 spec.flows.insert(
@@ -347,14 +353,12 @@ fn parse_contracts(lines: &[&str], start: usize, spec: &mut EnthSpec) -> usize {
                             action: act,
                         });
                     }
-                } else {
-                    if let Some(flow) = spec.flows.get_mut(flow_name) {
-                        flow.steps.push(FlowStep {
-                            number: num,
-                            subject: String::new(),
-                            action: rest.to_string(),
-                        });
-                    }
+                } else if let Some(flow) = spec.flows.get_mut(flow_name) {
+                    flow.steps.push(FlowStep {
+                        number: num,
+                        subject: String::new(),
+                        action: rest.to_string(),
+                    });
                 }
             } else {
                 match first {
