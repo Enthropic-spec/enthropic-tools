@@ -1,0 +1,58 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rustfmt:
+    name: Format (rustfmt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy (all lints)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy (errors)
+        run: >
+          cargo clippy --all-targets --
+          -D warnings
+          -D clippy::correctness
+          -D clippy::suspicious
+          -D clippy::complexity
+          -D clippy::perf
+          -W clippy::pedantic
+          -W clippy::nursery
+          -A clippy::missing_errors_doc
+          -A clippy::missing_panics_doc
+          -A clippy::must_use_candidate
+          -A clippy::module_name_repetitions
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check rustdoc
+        run: cargo doc --no-deps --document-private-items

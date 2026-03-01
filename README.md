@@ -1,6 +1,7 @@
 ![enthropic](assets/banner.svg)
 
 [![CI](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/ci.yml)
+[![Lint](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/lint.yml/badge.svg)](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/lint.yml)
 [![CodeQL](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/codeql.yml/badge.svg)](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/codeql.yml)
 [![Security Scan](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/security-scan.yml/badge.svg)](https://github.com/enthropic-spec/enthropic-tools/actions/workflows/security-scan.yml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/enthropic-spec/enthropic-tools/badge)](https://securityscorecards.dev/viewer/?uri=github.com/enthropic-spec/enthropic-tools)
