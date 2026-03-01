@@ -3,7 +3,7 @@ FROM rust:1-alpine AS builder
 WORKDIR /build
 RUN apk add --no-cache musl-dev
 COPY . .
-RUN cargo build --release
+RUN CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --release
 
 # Runtime stage — minimal image
 FROM alpine:3

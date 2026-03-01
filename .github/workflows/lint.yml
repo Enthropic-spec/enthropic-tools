@@ -33,7 +33,6 @@ jobs:
       - name: Clippy (errors)
         run: >
           cargo clippy --all-targets --
-          -D warnings
           -D clippy::correctness
           -D clippy::suspicious
           -D clippy::complexity

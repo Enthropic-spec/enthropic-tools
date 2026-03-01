@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Scan repository (CRITICAL + HIGH)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           scan-type: fs
           scan-ref: .
@@ -45,7 +45,7 @@ jobs:
         run: docker build -t enthropic:scan .
 
       - name: Scan Docker image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: enthropic:scan
           severity: CRITICAL,HIGH
