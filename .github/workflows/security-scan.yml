@@ -17,7 +17,7 @@ jobs:
     name: Trivy filesystem scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Scan repository (CRITICAL + HIGH)
         uses: aquasecurity/trivy-action@0.30.0
@@ -39,7 +39,7 @@ jobs:
     name: Trivy Docker image scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build image
         run: docker build -t enthropic:scan .
