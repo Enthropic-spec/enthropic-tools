@@ -1,6 +1,6 @@
 {
   "name": "enthropic",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for the Enthropic architectural specification format",
   "license": "MIT",
   "author": "Enthropic-spec",
@@ -8,21 +8,31 @@
     "type": "git",
     "url": "https://github.com/Enthropic-spec/enthropic-tools.git"
   },
-  "keywords": ["enthropic", "enth", "spec", "architecture", "ai", "cli", "mcp"],
+  "keywords": [
+    "enthropic",
+    "enth",
+    "spec",
+    "architecture",
+    "ai",
+    "cli",
+    "mcp"
+  ],
   "type": "module",
   "bin": {
     "enthropic": "dist/index.js"
   },
   "files": [
-    "dist/**",
+    "dist/index.js",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "postbuild": "node -e \"import('fs').then(fs=>{const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);fs.chmodSync(f,0o755);})\"",
+    "prebuild": "node -e \"import('fs').then(fs=>{try{fs.rmSync('dist',{recursive:true})}catch{}})\"",
+    "build": "bun build src/index.ts --outfile dist/index.js --target node --packages=external --format esm && node -e \"import('fs').then(fs=>{const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);fs.chmodSync(f,0o755);})\"",
     "prepare": "npm run build",
-    "bundle": "ncc build dist/index.js -o bundle --minify",
+    "binary:mac": "bun build src/index.ts --compile --outfile releases/enthropic-macos-arm64 --target bun-darwin-arm64",
+    "binary:linux": "bun build src/index.ts --compile --outfile releases/enthropic-linux-x64 --target bun-linux-x64",
+    "binary:win": "bun build src/index.ts --compile --outfile releases/enthropic-windows-x64.exe --target bun-windows-x64",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "test": "echo 'no tests yet' && exit 0",
