@@ -575,12 +575,15 @@ async function main(): Promise<void> {
     });
 
   program
+  let serveMode = false;
+
+  program
     .command('serve')
     .description('Start MCP server (stdio) — use with Claude Desktop, Cursor, or Docker')
     .action(() => {
-      // serve runs forever — skip post-parse menu
+      serveMode = true;
       serve();
-      process.exit(0);
+      // process stays alive via readline until stdin closes
     });
 
   program
@@ -606,6 +609,8 @@ async function main(): Promise<void> {
   }
 
   await program.parseAsync(process.argv);
+
+  if (serveMode) return; // stdio mode — don't touch stdout
 
   // After any direct command, return to menu if interactive terminal
   if (process.stdout.isTTY) {
