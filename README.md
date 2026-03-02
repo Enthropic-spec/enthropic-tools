@@ -157,6 +157,45 @@ The encryption key is in `~/.enthropic/[name].key` (chmod 600). Neither is ever 
 | Encryption key | `~/.enthropic/[name].key` chmod 600 | ❌ never |
 | API key (BYOK) | `~/.enthropic/global.keys` encrypted | ❌ never |
 
+## Roadmap
+
+#### v0.1.0 — MVP ✅
+- ✅ Parser and validator for the `.enth` format
+- ✅ `enthropic validate` — full spec validation with error messages
+- ✅ `enthropic context` — AI context block generation
+- ✅ `enthropic new` — guided project creation wizard
+- ✅ `enthropic build` — interactive AI build session
+- ✅ `enthropic state` — build progress tracking
+- ✅ `enthropic vault` — encrypted secrets (ChaCha20-Poly1305, never in repo)
+- ✅ `enthropic setup` — BYOK API key configuration
+- ✅ `enthropic serve` — MCP server over stdio (Claude Desktop, Cursor, Docker)
+- ✅ SLSA Level 3 provenance on release
+- ✅ Hardened CI (SHA-pinned actions, CodeQL, Trivy, OpenSSF Scorecard)
+
+#### v0.2.0 — Distribution
+- ⬜ Docker image signed with cosign → `ghcr.io/enthropic-spec/enthropic-tools`
+- ⬜ Pre-built binaries on Releases — macOS arm64, Linux amd64, Windows amd64
+- ⬜ Homebrew tap — `brew install enthropic-spec/tap/enthropic`
+- ⬜ SBOM generated and attached to every release
+- ⬜ `enthropic verify` — verify binary or image signature locally
+
+#### v0.3.0 — Editor Integration
+- ⬜ VS Code extension — syntax highlighting for `.enth`
+- ⬜ VS Code validate on save with inline error markers
+- ⬜ `enthropic lint` — warnings and improvement suggestions
+- ⬜ LSP server for any editor
+
+#### v0.4.0 — Security
+- ⬜ `SECURITY` block support — parse and validate `AUTH`, `CORS`, `RATE_LIMIT`, `INPUT_VALIDATION`
+- ⬜ Validator CVE checks on declared `DEPS` at parse time
+- ⬜ Security context injected into every AI build session automatically
+- ⬜ `enthropic audit` — standalone security report for a spec file
+
+#### v0.5.0+ — Ecosystem
+- ⬜ Template library — `enthropic init --template api|saas|cli|worker`
+- ⬜ Community recipe collection — one `.enth` per project archetype
+- ⬜ `enthropic recipes` — browse and pull community templates
+
 ## Spec
 
 The `.enth` format is defined in [enthropic/SPEC.md](https://github.com/Enthropic-spec/enthropic/blob/main/SPEC.md).

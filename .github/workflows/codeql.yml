@@ -3,27 +3,14 @@ name: CodeQL
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'Dockerfile'
-      - '.github/workflows/codeql.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'Dockerfile'
-      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '0 6 * * 1'
 
 concurrency:
   group: codeql-${{ github.ref }}
   cancel-in-progress: true
-
 permissions: read-all
 
 jobs:

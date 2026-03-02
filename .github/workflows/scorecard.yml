@@ -8,8 +8,7 @@ on:
 
 concurrency:
   group: scorecard-${{ github.ref }}
-  cancel-in-progress: false
-
+  cancel-in-progress: true
 permissions: read-all
 
 jobs:

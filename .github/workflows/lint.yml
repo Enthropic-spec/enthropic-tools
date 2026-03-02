@@ -18,6 +18,9 @@ on:
       - '.eslintrc.json'
       - '.github/workflows/lint.yml'
 
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
 permissions: read-all
 
 jobs:
