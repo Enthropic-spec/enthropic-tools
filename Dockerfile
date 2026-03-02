@@ -2,7 +2,7 @@
 FROM oven/bun:1-alpine@sha256:32f1fcccb1523960b254c4f80973bee1a910d60be000a45c20c9129a1efcffee AS builder
 WORKDIR /build
 COPY package*.json tsconfig.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --ignore-scripts
 COPY src ./src
 RUN bun build src/index.ts --outfile dist/index.js --target node --packages=external --format esm \
  && node -e "const fs=require('fs');const f='dist/index.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\n'+c);fs.chmodSync(f,0o755);"
