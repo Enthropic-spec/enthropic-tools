@@ -1,10 +1,11 @@
-import { writeFileSync, existsSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync, mkdirSync } from 'fs';
+import { resolve, join } from 'path';
 import * as tui from './tui.js';
 import { parse } from './parser.js';
 import { validate } from './validator.js';
 import { generate as generateState } from './state.js';
 import { refreshVaultFile } from './vault.js';
+import { getWorkdir } from './global_config.js';
 
 const LANGUAGES = ['python', 'rust', 'typescript', 'go', 'other'];
 const ARCH_STYLES = ['layered', 'event-driven', 'realtime', 'offline-first', 'other'];
@@ -16,7 +17,6 @@ interface LayerDef {
 }
 
 export async function run(): Promise<void> {
-  tui.printHeader();
 
   // FIX: ask AI vs manual at start
   const modeIdx = await tui.select('How do you want to create the .enth?', [
@@ -25,9 +25,9 @@ export async function run(): Promise<void> {
   ]);
 
   if (modeIdx === 0) {
-    // AI path
+    // AI path — always fresh, never picks up existing spec
     const { run: buildRun } = await import('./build_cmd.js');
-    await buildRun(undefined);
+    await buildRun(undefined, true, getWorkdir());
     return;
   }
 
@@ -129,12 +129,14 @@ export async function run(): Promise<void> {
     content += '\n';
   }
 
-  const specFilename = 'enthropic.enth';
-  const stateFilename = `state_${slug}.enth`;
+  const workdir = getWorkdir();
+  const projectDir = join(workdir, slug);
+  mkdirSync(projectDir, { recursive: true });
 
-  writeFileSync(specFilename, content);
+  const specPath = join(projectDir, `${slug}.enth`);
+  writeFileSync(specPath, content);
 
-  const spec = parse(resolve(specFilename));
+  const spec = parse(resolve(specPath));
   const errors = validate(spec);
 
   if (errors.length > 0) {
@@ -147,30 +149,18 @@ export async function run(): Promise<void> {
   }
 
   const stateContent = generateState(spec, slug);
-  writeFileSync(stateFilename, stateContent);
-
-  refreshVaultFile(slug, spec.secrets, '.');
-
-  const gitignore = '.gitignore';
-  const ignoreEntries = ['vault_*.enth', 'state_*.enth', '.env'];
-  if (existsSync(gitignore)) {
-    const existing = readFileSync(gitignore, 'utf-8');
-    const additions = ignoreEntries.filter(e => !existing.includes(e));
-    if (additions.length > 0) {
-      writeFileSync(gitignore, existing.trimEnd() + '\n' + additions.join('\n') + '\n');
-    }
-  } else {
-    writeFileSync(gitignore, ignoreEntries.join('\n') + '\n');
-  }
+  writeFileSync(join(projectDir, `state_${slug}.enth`), stateContent);
+  refreshVaultFile(slug, spec.secrets, projectDir);
 
   console.log();
   if (errors.length === 0) {
-    tui.printSuccess(`${specFilename} created and validated`);
+    tui.printSuccess(`${slug}.enth created and validated`);
   } else {
-    tui.printSuccess(`${specFilename} created (with warnings — check above)`);
+    tui.printSuccess(`${slug}.enth created (with warnings — check above)`);
   }
-  tui.printSuccess(`${stateFilename} created`);
+  tui.printSuccess(`state_${slug}.enth created`);
   tui.printSuccess(`vault_${slug}.enth created`);
+  tui.printDim(`  Project folder: ${projectDir}`);
   console.log();
   tui.printDim('  Next: run  enthropic build  to start building with AI.');
 }

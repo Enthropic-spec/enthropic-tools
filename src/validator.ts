@@ -45,19 +45,20 @@ export function validate(spec: EnthSpec): ValidationError[] {
     }
   }
 
-  // 4 — CONTRACT subjects must reference declared entities (or wildcard)
+  // 4 — CONTRACT subjects must reference declared entities or layer names (or wildcard)
+  const layerNamesLower = new Set([...spec.layers.keys()].map(k => k.toLowerCase()));
   for (const c of spec.contracts) {
     const base = c.subject.split('.')[0];
-    if (base !== '*' && !entities.has(base)) {
-      errors.push({ rule: 4, message: `CONTRACTS subject '${c.subject}' references undeclared entity '${base}'`, severity: 'ERROR' });
+    if (base !== '*' && !entities.has(base) && !layerNamesLower.has(base)) {
+      errors.push({ rule: 4, message: `CONTRACTS subject '${c.subject}' references undeclared entity or layer '${base}'`, severity: 'ERROR' });
     }
   }
 
-  // 5 — FLOW step entities must be declared
+  // 5 — FLOW step subjects must reference declared entities or layer names
   for (const flow of spec.flows.values()) {
     for (const step of flow.steps) {
-      if (step.subject && !entities.has(step.subject)) {
-        errors.push({ rule: 5, message: `FLOW '${flow.name}' step ${step.number} references undeclared entity '${step.subject}'`, severity: 'ERROR' });
+      if (step.subject && !entities.has(step.subject) && !layerNamesLower.has(step.subject)) {
+        errors.push({ rule: 5, message: `FLOW '${flow.name}' step ${step.number} references undeclared entity or layer '${step.subject}'`, severity: 'ERROR' });
       }
     }
   }
@@ -117,10 +118,11 @@ export function validate(spec: EnthSpec): ValidationError[] {
     }
   }
 
-  // 12 — LAYERS CALLS may only reference declared layer names
+  // 12 — LAYERS CALLS may only reference declared layer names ('none' = calls nothing)
   const declaredLayers = new Set(spec.layers.keys());
   for (const layer of spec.layers.values()) {
     for (const ref of layer.calls) {
+      if (ref.toLowerCase() === 'none') continue;
       if (!declaredLayers.has(ref)) {
         errors.push({ rule: 12, message: `LAYERS '${layer.name}' CALLS undeclared layer '${ref}'`, severity: 'ERROR' });
       }
@@ -132,6 +134,76 @@ export function validate(spec: EnthSpec): ValidationError[] {
     if (!isUpperCase(secret)) {
       errors.push({ rule: 13, message: `SECRETS entry must be UPPER_CASE: '${secret}'`, severity: 'ERROR' });
     }
+  }
+
+  // 14 — OBSERVABILITY flow references undeclared FLOW
+  const declaredFlows = new Set(spec.flows.keys());
+  for (const entry of spec.observability.values()) {
+    if (!declaredFlows.has(entry.flow)) {
+      errors.push({ rule: 14, message: `OBSERVABILITY references undeclared FLOW '${entry.flow}'`, severity: 'ERROR' });
+    }
+  }
+
+  // 15 — TESTING flow references undeclared FLOW
+  for (const entry of spec.testing.values()) {
+    if (!declaredFlows.has(entry.flow)) {
+      errors.push({ rule: 15, message: `TESTING references undeclared FLOW '${entry.flow}'`, severity: 'ERROR' });
+    }
+  }
+
+  // 16 — TESTING coverage must be 0–100
+  for (const entry of spec.testing.values()) {
+    if (entry.coverage !== undefined && (entry.coverage < 0 || entry.coverage > 100)) {
+      errors.push({ rule: 16, message: `TESTING '${entry.flow}' coverage must be 0–100 (got ${entry.coverage})`, severity: 'ERROR' });
+    }
+  }
+
+  // 17 — OBSERVABILITY level must be critical, warn, or info
+  const validLevels = new Set(['critical', 'warn', 'info']);
+  for (const entry of spec.observability.values()) {
+    if (entry.level !== undefined && !validLevels.has(entry.level)) {
+      errors.push({ rule: 17, message: `OBSERVABILITY '${entry.flow}' level must be 'critical', 'warn', or 'info' (got '${entry.level}')`, severity: 'ERROR' });
+    }
+  }
+
+  // 18 — OWNERSHIP entity references undeclared entity
+  // 19 — OWNERSHIP flow references undeclared flow
+  for (const entry of spec.ownership) {
+    if (entry.kind === 'entity' && !entities.has(entry.name)) {
+      errors.push({ rule: 18, message: `OWNERSHIP references undeclared entity '${entry.name}'`, severity: 'ERROR' });
+    }
+    if (entry.kind === 'flow' && !declaredFlows.has(entry.name)) {
+      errors.push({ rule: 19, message: `OWNERSHIP references undeclared flow '${entry.name}'`, severity: 'ERROR' });
+    }
+  }
+
+  // 21 — QUOTAS entry must have a non-empty limit value
+  for (const q of spec.quotas) {
+    if (!q.limit) {
+      errors.push({ rule: 21, message: `QUOTAS entry '${q.resource}' has an empty limit value`, severity: 'ERROR' });
+    }
+  }
+
+  // 20 — PERFORMANCE entity references undeclared entity
+  for (const entry of spec.performance) {
+    if (!entities.has(entry.entity)) {
+      errors.push({ rule: 20, message: `PERFORMANCE references undeclared entity '${entry.entity}'`, severity: 'ERROR' });
+    }
+  }
+
+  // 22 — CHANGELOG entry keyword must be BREAKING, ADDED, DEPRECATED, or CHANGED
+  const validChangelogKeywords = new Set(['BREAKING', 'ADDED', 'DEPRECATED', 'CHANGED']);
+  for (const ver of spec.changelog) {
+    for (const entry of ver.entries) {
+      if (!validChangelogKeywords.has(entry.keyword)) {
+        errors.push({ rule: 22, message: `CHANGELOG '${ver.version}' entry has invalid keyword '${entry.keyword}'`, severity: 'ERROR' });
+      }
+    }
+  }
+
+  // 23 — VERSION must match semver format
+  if (spec.version && !/^\d+\.\d+\.\d+/.test(spec.version)) {
+    errors.push({ rule: 23, message: `VERSION '${spec.version}' does not match semver format (x.y.z)`, severity: 'ERROR' });
   }
 
   return errors;

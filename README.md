@@ -28,33 +28,39 @@ cd enthropic-tools && npm install && npm run build && npm install -g .
 ## Workflow
 
 ```
-enthropic setup         # one-time: store your API key encrypted
-enthropic new           # guided wizard → creates enthropic.enth
-enthropic validate      # validate spec → auto-creates state + vault + .gitignore
-enthropic build         # AI spec consultant → design your .enth through conversation
+enthropic setup         # one-time: configure AI provider + API key
+enthropic new           # AI-guided wizard → creates spec, state, vault in project folder
+enthropic check         # validate + lint in one view — errors (V) and warnings (L)
+enthropic update        # refine an existing spec with AI
+enthropic context       # spec + state → AI context block (opens in pager)
 ```
 
 ## Commands
 
 ```bash
-enthropic setup                          # configure provider + API key + model
-enthropic new                            # guided .enth creation wizard
+enthropic setup                    # configure provider + API key + model
+enthropic open                     # open a project spec in $EDITOR
 
-enthropic validate [file]                # validate spec, auto-create state + vault
-enthropic context  [file]                # print full AI context block
+enthropic new                      # guided project creation (AI conversation)
+enthropic update   [file]          # refine existing spec with AI
+enthropic reverse  [dir]           # reverse-engineer a codebase into a starter .enth
 
-enthropic state show    [file]
-enthropic state set <entity> <status> [file]
+enthropic check    [file]          # full check: errors + warnings, grouped by severity
+enthropic context  [file]          # spec + state → AI context block (pager view)
 
-enthropic vault set    <KEY> <VALUE> [file]
-enthropic vault delete <KEY>         [file]
-enthropic vault keys                 [file]   # names only — never values
-enthropic vault export [--out .env]  [file]   # explicit decrypt only
+enthropic state    show    [file]
+enthropic state    set <entity> <status> [file]
 
-enthropic serve                              # MCP server (stdio) — for Claude Desktop, Cursor, Docker
+enthropic vault    set    <KEY>         [file]
+enthropic vault    delete <KEY>         [file]
+enthropic vault    keys                 [file]   # names only — never values
+enthropic vault    export [--out .env]  [file]   # explicit decrypt only
+
+enthropic serve                         # MCP server (stdio) — Claude Desktop, Cursor, Docker
+enthropic delete                        # delete a project folder entirely
 ```
 
-`[file]` defaults to `enthropic.enth` in the current directory.
+`[file]` defaults to the `.enth` file inside `~/.enthropic/workspace/<project>/`.
 
 ## MCP Integration
 
@@ -161,28 +167,33 @@ The encryption key is in `~/.enthropic/[name].key` (chmod 600). Neither is ever 
 
 #### v0.1.0 — MVP ✅
 - ✅ Parser and validator for the `.enth` format
-- ✅ `enthropic validate` — full spec validation with error messages
-- ✅ `enthropic context` — AI context block generation
-- ✅ `enthropic new` — guided project creation wizard
-- ✅ `enthropic build` — interactive AI build session
-- ✅ `enthropic state` — build progress tracking
+- ✅ `enthropic check` — merged validate + lint, single view with ERROR/WARN grouped by severity
+- ✅ `enthropic context` — AI context block generation (pager view)
+- ✅ `enthropic new` — AI-guided project wizard with project folder structure
+- ✅ `enthropic update` — interactive AI refinement session for existing specs
+- ✅ `enthropic reverse` — reverse-engineer a codebase into a starter spec
+- ✅ `enthropic state` — build progress tracking with project picker
 - ✅ `enthropic vault` — encrypted secrets (ChaCha20-Poly1305, never in repo)
-- ✅ `enthropic setup` — BYOK API key configuration
+- ✅ `enthropic setup` — BYOK API key configuration (OpenAI, Anthropic, OpenRouter)
 - ✅ `enthropic serve` — MCP server over stdio (Claude Desktop, Cursor, Docker)
+- ✅ `enthropic open` / `enthropic delete` — project management
+- ✅ Post-check AI refine flow — errors passed as context to the AI session automatically
 - ✅ SLSA Level 3 provenance on release
 - ✅ Hardened CI (SHA-pinned actions, CodeQL, Trivy, OpenSSF Scorecard)
 
 #### v0.2.0 — Distribution
 - ⬜ Docker image signed with cosign → `ghcr.io/enthropic-spec/enthropic-tools`
+- ⬜ npm publish — `npm install -g enthropic` (verify name availability, smoke tests first)
 - ⬜ Pre-built binaries on Releases — macOS arm64, Linux amd64, Windows amd64
 - ⬜ Homebrew tap — `brew install enthropic-spec/tap/enthropic`
 - ⬜ SBOM generated and attached to every release
 - ⬜ `enthropic verify` — verify binary or image signature locally
 
-#### v0.3.0 — Editor Integration
-- ⬜ VS Code extension — syntax highlighting for `.enth`
-- ⬜ VS Code validate on save with inline error markers
-- ⬜ `enthropic lint` — warnings and improvement suggestions
+#### v0.3.0 — Integrations
+- ⬜ **Webhook / bot integration** — HTTP endpoint that receives events (GitHub PR merged, deploy succeeded) and auto-updates project state; Slack/Discord bot that posts check results and state diffs
+- ⬜ GitHub Action — `enthropic check` as a CI step; fails PR if spec has errors
+- ⬜ `enthropic watch` — file watcher that runs check on `.enth` save and reports live
+- ⬜ VS Code extension — syntax highlighting, validate on save, inline error markers
 - ⬜ LSP server for any editor
 
 #### v0.4.0 — Security
@@ -192,7 +203,7 @@ The encryption key is in `~/.enthropic/[name].key` (chmod 600). Neither is ever 
 - ⬜ `enthropic audit` — standalone security report for a spec file
 
 #### v0.5.0+ — Ecosystem
-- ⬜ Template library — `enthropic init --template api|saas|cli|worker`
+- ⬜ Template library — `enthropic new --template api|saas|cli|worker`
 - ⬜ Community recipe collection — one `.enth` per project archetype
 - ⬜ `enthropic recipes` — browse and pull community templates
 

@@ -1,5 +1,7 @@
 import * as globalConfig from './global_config.js';
+import { getWorkdir, setWorkdir } from './global_config.js';
 import * as tui from './tui.js';
+import { existsSync, mkdirSync } from 'fs';
 
 const PROVIDERS = ['anthropic', 'openai', 'openrouter'] as const;
 
@@ -65,7 +67,6 @@ async function selectModel(provider: string, apiKey: string): Promise<string> {
 }
 
 export async function run(): Promise<void> {
-  tui.printHeader();
 
   console.log('  Welcome to Enthropic.\n');
   console.log('  To use  enthropic build  you need an API key.');
@@ -99,7 +100,19 @@ export async function run(): Promise<void> {
   console.log();
 
   globalConfig.setApiKey(provider, apiKey);
-  globalConfig.saveConfig({ provider, model });
+  globalConfig.saveConfig({ ...globalConfig.loadConfig(), provider, model });
+
+  const currentWorkdir = getWorkdir();
+  const newDir = await tui.inputWithDefault('Working directory (where your .enth files live)', currentWorkdir);
+  if (existsSync(newDir)) {
+    setWorkdir(newDir);
+  } else {
+    const create = await tui.confirm(`Directory "${newDir}" does not exist. Create it?`);
+    if (create) {
+      mkdirSync(newDir, { recursive: true });
+      setWorkdir(newDir);
+    }
+  }
 
   console.log();
   tui.printSuccess('Key stored encrypted in ~/.enthropic/global.keys');

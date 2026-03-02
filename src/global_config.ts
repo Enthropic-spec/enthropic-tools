@@ -1,12 +1,13 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { chacha20poly1305 } from '@noble/ciphers/chacha';
 import { randomBytes } from 'crypto';
+import { encryptData, decryptData } from './crypto.js';
 
 export interface GlobalConfig {
   provider?: string;
   model?: string;
+  workdir?: string;
 }
 
 function configDir(): string {
@@ -58,31 +59,17 @@ function getOrCreateGlobalKey(): Uint8Array {
   return new Uint8Array(key);
 }
 
-function encryptData(key: Uint8Array, data: Uint8Array): Uint8Array {
-  const nonce = new Uint8Array(randomBytes(12));
-  const cipher = chacha20poly1305(key, nonce);
-  const ciphertext = cipher.encrypt(data);
-  const result = new Uint8Array(12 + ciphertext.length);
-  result.set(nonce, 0);
-  result.set(ciphertext, 12);
-  return result;
-}
-
-function decryptData(key: Uint8Array, data: Uint8Array): Uint8Array {
-  if (data.length < 12) throw new Error('Ciphertext too short');
-  const nonce = data.slice(0, 12);
-  const ciphertext = data.slice(12);
-  const cipher = chacha20poly1305(key, nonce);
-  return cipher.decrypt(ciphertext);
-}
-
 function loadApiKeys(): Record<string, string> {
   const p = globalKeysPath();
   if (!existsSync(p)) return {};
   const key = getOrCreateGlobalKey();
   const cipherdata = new Uint8Array(readFileSync(p));
   const plaintext = decryptData(key, cipherdata);
-  return JSON.parse(Buffer.from(plaintext).toString('utf-8')) as Record<string, string>;
+  try {
+    return JSON.parse(Buffer.from(plaintext).toString('utf-8')) as Record<string, string>;
+  } catch (e) {
+    throw new Error('Failed to parse API keys: ' + String(e));
+  }
 }
 
 function saveApiKeys(keys: Record<string, string>): void {
@@ -93,6 +80,24 @@ function saveApiKeys(keys: Record<string, string>): void {
   const p = globalKeysPath();
   writeFileSync(p, encrypted);
   try { chmodSync(p, 0o600); } catch { /* non-unix */ }
+}
+
+export function defaultWorkdir(): string {
+  return join(configDir(), 'workspace');
+}
+
+export function getWorkdir(): string {
+  const cfg = loadConfig();
+  if (cfg.workdir && existsSync(cfg.workdir)) return cfg.workdir;
+  const def = defaultWorkdir();
+  mkdirSync(def, { recursive: true });
+  return def;
+}
+
+export function setWorkdir(dir: string): void {
+  const cfg = loadConfig();
+  cfg.workdir = dir;
+  saveConfig(cfg);
 }
 
 export function setApiKey(provider: string, apiKey: string): void {

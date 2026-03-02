@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'fs';
 import { parse } from './parser.js';
 import { validate } from './validator.js';
 import { generate as generateContext } from './context.js';
+import { getWorkdir } from './global_config.js';
 
 const VERSION = '0.1.0';
 
@@ -199,6 +200,7 @@ function handleToolsCall(id: JsonValue, params: JsonValue): JsonValue {
 }
 
 export function serve(): void {
+  process.chdir(getWorkdir());
   const rl = createInterface({ input: process.stdin });
 
   rl.on('line', (line: string) => {
