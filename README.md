@@ -42,7 +42,7 @@ SECRETS
   JWT_SECRET
 ```
 
-The `enthropic` CLI validates your spec, tracks build progress, and produces the context block you paste into any AI assistant — or feed automatically via the MCP integration.
+The `enthropic` CLI validates your spec, tracks build progress, and produces the context block you give to any AI assistant. Unlike a pile of `.md` files, a `.enth` is structured, machine-readable, and produces the same architectural result across every session, every model, every team member.
 
 ## Install
 
@@ -116,22 +116,14 @@ STATE myapp
 #### v0.1.0 ✅  Parser, validator, check, context, new, build, update, reverse, state, setup, open/delete, SLSA Level 3.
 #### v0.2.0 ✅  `npm install -g enthropic`, automated release pipeline, npm provenance.
 
----
-
-#### v0.5.0 — SECURITY  
-Stack-aware security patterns injected automatically in `context`. No new syntax — if you have `postgresql` in STACK, the context block includes relevant patterns. Invisible, not optional.
+#### v0.3.0 — Expressiveness  
+`DECISIONS` block — architectural choices with rationale. Richer `CONTRACTS` operators — cardinality, pre/post conditions.
 
 #### v0.4.0 — Standard  
-Public spec registry (`enthropic.dev` or `awesome-enthropic`). GitHub Action for `check` in CI. One `.enth` per archetype, curation process, contribution guidelines.
+Public spec registry + GitHub Action for `enthropic check` in CI. One `.enth` per archetype, contribution guidelines.
 
-#### v0.3.0 — Expressiveness  
-`DECISIONS` block — architectural choices with rationale. Richer `CONTRACTS` operators — cardinality, pre/post conditions. Explicit violation docs per constraint type.
-
-#### next — before v0.2.0  
-Rewrite `enthropic` spec repo README with correct positioning.
-
-#### v0.2.0 — Usability  
-`AI-USAGE.md`: official guide, recommended system prompt, copy-paste patterns. Five domain examples in `examples/` (SaaS, REST API, mobile offline-first, CLI, worker).
+#### v0.5.0 — Security  
+Stack-aware security patterns injected automatically in `context`. No new syntax — invisible, not optional.
 
 ## Spec
 
