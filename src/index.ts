@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync, unlinkSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { tmpdir } from 'os';
 import { execSync, spawnSync } from 'child_process';
@@ -11,15 +11,11 @@ import type { EnthSpec } from './parser.js';
 import { cmdCheck, check } from './check.js';
 import { generate as generateContext } from './context.js';
 import { setStatus } from './state.js';
-import {
-  setSecret, deleteSecret, listKeys, exportEnv,
-} from './vault.js';
 import * as tui from './tui.js';
 import { run as setupRun } from './setup.js';
 import { run as newWizardRun } from './new_wizard.js';
 import { run as buildRun } from './build_cmd.js';
 import { run as initRun } from './init_cmd.js';
-import { serve } from './mcp.js';
 import { runMigrate } from './migrate.js';
 import { resolveSpec } from './utils.js';
 import { getWorkdir, loadConfig } from './global_config.js';
@@ -28,14 +24,6 @@ function projectName(spec: EnthSpec, path: string): string {
   const val = spec.project.get('NAME');
   const raw = val?.kind === 'str' ? val.value : path.replace(/\.enth$/, '').split('/').pop() ?? 'project';
   return raw.replace(/^"|"$/g, '').toLowerCase().replace(/ /g, '_');
-}
-
-function vaultProject(file?: string): [string, string, string[]] {
-  const specPath = resolveSpec(file);
-  const spec = parse(specPath);
-  const name = projectName(spec, specPath);
-  const dir = dirname(specPath);
-  return [name, dir, spec.secrets];
 }
 
 
@@ -106,65 +94,6 @@ function cmdStateSet(key: string, status: string, file?: string): boolean {
   }
 }
 
-function cmdVaultSet(key: string, value: string, file?: string): boolean {
-  const [project, directory, secretNames] = vaultProject(file);
-  try {
-    setSecret(project, key, value, directory, secretNames);
-    console.log(`${chalk.green('✓')} ${key} → SET in vault_${project}.enth`);
-    return true;
-  } catch (e) {
-    console.error(`${chalk.red('✗')} ${String(e)}`);
-    return false;
-  }
-}
-
-function cmdVaultDelete(key: string, file?: string): boolean {
-  const [project, directory, secretNames] = vaultProject(file);
-  try {
-    deleteSecret(project, key, directory, secretNames);
-    console.log(`${chalk.green('✓')} ${key} → UNSET`);
-    return true;
-  } catch (e) {
-    console.error(`${chalk.red('✗')} ${String(e)}`);
-    return false;
-  }
-}
-
-function cmdVaultKeys(file?: string): boolean {
-  const [project] = vaultProject(file);
-  try {
-    const keys = listKeys(project);
-    if (keys.length === 0) {
-      console.log(chalk.dim('No secrets set yet.'));
-    } else {
-      for (const k of keys) {
-        console.log(`  ${chalk.cyan(k)}  ${chalk.green('SET')}`);
-      }
-    }
-    return true;
-  } catch (e) {
-    console.error(`${chalk.red('✗')} ${String(e)}`);
-    return false;
-  }
-}
-
-function cmdVaultExport(out?: string, file?: string): boolean {
-  const [project] = vaultProject(file);
-  try {
-    const result = exportEnv(project);
-    if (out) {
-      writeFileSync(out, result);
-      console.log(`${chalk.green('✓')} Exported to ${out}`);
-    } else {
-      console.log(result);
-    }
-    return true;
-  } catch (e) {
-    console.error(`${chalk.red('✗')} ${String(e)}`);
-    return false;
-  }
-}
-
 
 async function pickEnthFile(workdir: string, label = 'Select project', allowBack = false): Promise<string | null> {
   type Choice = { name: string; value: string };
@@ -202,13 +131,13 @@ async function pickEnthFile(workdir: string, label = 'Select project', allowBack
 
 async function runInteractiveMenu(workdir: string): Promise<void> {
   let firstRun = true;
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     if (!firstRun) {
       console.log(tui.dimmed('──────────────────────────────────────────────────────────────'));
     }
     firstRun = false;
-    // eslint-disable-next-line no-await-in-loop
+     
     const choice = await select({
       message: 'Select a command',
       pageSize: 30,
@@ -224,9 +153,6 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
         { name: tui.pink('context'.padEnd(11))  + tui.dimmed('Generate AI context block from a spec'),                      value: 'context', short: 'context' },
         new Separator(),
         { name: tui.pink('state'.padEnd(11))    + tui.dimmed('Manage project build state'),                                 value: 'state',   short: 'state' },
-        { name: tui.pink('vault'.padEnd(11))    + tui.dimmed('Manage encrypted project secrets'),                           value: 'vault',   short: 'vault' },
-        new Separator(),
-        { name: tui.pink('serve'.padEnd(11))    + tui.dimmed('MCP server — Claude Desktop, Cursor, Docker'),                value: 'serve',   short: 'serve' },
         new Separator(),
         { name: tui.pink('delete'.padEnd(11))   + tui.dimmed('Delete a project and all its files'),                         value: 'delete',  short: 'delete' },
         new Separator(),
@@ -238,16 +164,11 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
       process.exit(0);
     }
 
-    if (choice === 'serve') {
-      serve();
-      return;
-    }
-
     if (choice === 'setup') {
-      // eslint-disable-next-line no-await-in-loop
+       
       await setupRun();
     } else if (choice === 'open') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const specFile = await pickEnthFile(workdir, 'Open which project?', true);
       if (specFile) {
         const editor = process.env.EDITOR ?? 'open';
@@ -259,26 +180,26 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
           try { execSync(`open "${specFile}"`, { stdio: 'ignore' }); tui.printSuccess(`Opened  ${specFile}`); }
           catch (e) { tui.printError(`Cannot open file: ${String(e)}`); }
         }
-        // eslint-disable-next-line no-await-in-loop
+         
         await tui.pressEnter();
       }
     } else if (choice === 'new') {
-      // eslint-disable-next-line no-await-in-loop
+       
       await newWizardRun();
     } else if (choice === 'reverse') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const dir = await tui.inputWithDefault('Directory to scan', '.');
-      // eslint-disable-next-line no-await-in-loop
+       
       await initRun(dir);
     } else if (choice === 'update') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const file = await pickEnthFile(workdir, 'Which project to update?', true);
       if (file) {
-        // eslint-disable-next-line no-await-in-loop
+         
         await buildRun(file, false, workdir, true);
       }
     } else if (choice === 'check') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const file = await pickEnthFile(workdir, 'Select project', true);
       if (file) {
         let results: import('./check.js').CheckResult[] = [];
@@ -291,7 +212,7 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
         const hasIssues = results.some(r => r.severity === 'ERROR' || r.severity === 'WARN');
         if (hasIssues) {
           const errorsText = results.map(r => `[${r.severity}] ${r.rule}: ${r.message}`).join('\n');
-          // eslint-disable-next-line no-await-in-loop
+           
           const action = await select({
             message: tui.pink('What do you want to do?'),
             pageSize: 5,
@@ -303,7 +224,7 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
           });
           process.stdin.resume();
           if (action === 'ai') {
-            // eslint-disable-next-line no-await-in-loop
+             
             await buildRun(file, false, workdir, true, errorsText);
           } else if (action === 'edit') {
             const editor = process.env.EDITOR ?? 'open';
@@ -311,12 +232,12 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
             catch { try { execSync(`open "${file}"`, { stdio: 'ignore' }); } catch { /**/ } }
           }
         } else {
-          // eslint-disable-next-line no-await-in-loop
+           
           await tui.pressEnter();
         }
       }
     } else if (choice === 'context') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const file = await pickEnthFile(workdir, 'Select project', true);
       if (file) {
         try {
@@ -330,19 +251,24 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
           const content = genCtx(spec, statePath);
           const tmpFile = join(tmpdir(), `enth_ctx_${Date.now()}.md`);
           writeFileSync(tmpFile, content);
-          spawnSync('less', ['-R', tmpFile], { stdio: 'inherit' });
-          try { unlinkSync(tmpFile); } catch { /**/ }
+          const editor = process.env.EDITOR;
+          if (editor) {
+            spawnSync(editor, [tmpFile], { stdio: 'inherit' });
+          } else {
+            // open in default system app (new window)
+            spawnSync('open', [tmpFile], { stdio: 'ignore' });
+          }
         } catch (e) { tui.printError(String(e)); }
       }
     } else if (choice === 'state') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const specFile = await pickEnthFile(workdir, 'state  — select project', true);
       if (specFile) {
         // inner loop: stay in state until user goes back
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const projectName = specFile.split('/').slice(-2, -1)[0] ?? specFile;
-          // eslint-disable-next-line no-await-in-loop
+           
           const sub = await select({
             message: tui.pink('state') + tui.dimmed(`  ${projectName}`),
             pageSize: 10,
@@ -356,70 +282,21 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
           if (sub === 'back') break;
           if (sub === 'show') {
             try { cmdStateShow(specFile); } catch (e) { tui.printError(String(e)); }
-            // eslint-disable-next-line no-await-in-loop
+             
             await tui.pressEnter();
           } else if (sub === 'set') {
-            // eslint-disable-next-line no-await-in-loop
+             
             const key = await tui.input('Key to update');
-            // eslint-disable-next-line no-await-in-loop
+             
             const status = await tui.input('New status  (pending / in_progress / done / blocked)');
             try { cmdStateSet(key, status, specFile); } catch (e) { tui.printError(String(e)); }
-            // eslint-disable-next-line no-await-in-loop
-            await tui.pressEnter();
-          }
-        }
-      }
-    } else if (choice === 'vault') {
-      // eslint-disable-next-line no-await-in-loop
-      const specFile = await pickEnthFile(workdir, 'vault  — select project', true);
-      if (specFile) {
-        // inner loop: stay in vault until user goes back
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const projectName = specFile.split('/').slice(-2, -1)[0] ?? specFile;
-          // eslint-disable-next-line no-await-in-loop
-          const sub = await select({
-            message: tui.pink('vault') + tui.dimmed(`  ${projectName}`),
-            pageSize: 10,
-            choices: [
-              { name: tui.pink('keys  ') + tui.dimmed('  List all secret names'),        value: 'keys',   short: 'keys' },
-              { name: tui.pink('set   ') + tui.dimmed('  Store a secret'),               value: 'set',    short: 'set' },
-              { name: tui.pink('delete') + tui.dimmed('  Remove a secret'),              value: 'delete', short: 'delete' },
-              { name: tui.pink('export') + tui.dimmed('  Export as .env file'),          value: 'export', short: 'export' },
-              new Separator(),
-              { name: tui.dimmed('← back'),                                              value: 'back',   short: 'back' },
-            ],
-          });
-          if (sub === 'back') break;
-          if (sub === 'keys') {
-            try { cmdVaultKeys(specFile); } catch (e) { tui.printError(String(e)); }
-            // eslint-disable-next-line no-await-in-loop
-            await tui.pressEnter();
-          } else if (sub === 'set') {
-            // eslint-disable-next-line no-await-in-loop
-            const key = await tui.input('Secret name  (UPPER_CASE)');
-            // eslint-disable-next-line no-await-in-loop
-            const val = await tui.password('Secret value');
-            try { cmdVaultSet(key, val, specFile); } catch (e) { tui.printError(String(e)); }
-            // eslint-disable-next-line no-await-in-loop
-            await tui.pressEnter();
-          } else if (sub === 'delete') {
-            // eslint-disable-next-line no-await-in-loop
-            const key = await tui.input('Secret name to delete');
-            try { cmdVaultDelete(key, specFile); } catch (e) { tui.printError(String(e)); }
-            // eslint-disable-next-line no-await-in-loop
-            await tui.pressEnter();
-          } else if (sub === 'export') {
-            // eslint-disable-next-line no-await-in-loop
-            const outFile = await tui.inputWithDefault('Output file', '.env');
-            try { cmdVaultExport(outFile, specFile); } catch (e) { tui.printError(String(e)); }
-            // eslint-disable-next-line no-await-in-loop
+             
             await tui.pressEnter();
           }
         }
       }
     } else if (choice === 'delete') {
-      // eslint-disable-next-line no-await-in-loop
+       
       const specFile = await pickEnthFile(workdir, 'Delete which project?', true);
       if (specFile) {
         const projectDir = specFile.split('/').slice(0, -1).join('/');
@@ -427,7 +304,7 @@ async function runInteractiveMenu(workdir: string): Promise<void> {
         console.log();
         tui.printError(`  This will permanently delete:  ${projectDir}`);
         console.log();
-        // eslint-disable-next-line no-await-in-loop
+         
         const confirmed = await tui.confirm(`Delete  ${projectName}  and all its files?`);
         if (confirmed) {
           rmSync(projectDir, { recursive: true, force: true });
@@ -507,46 +384,6 @@ async function main(): Promise<void> {
     );
 
   program
-    .command('vault')
-    .description('Manage project secrets (encrypted vault)')
-    .addCommand(
-      new Command('set')
-        .argument('<key>', 'Secret key name')
-        .argument('<value>', 'Secret value')
-        .argument('[file]', '.enth spec file')
-        .description('Store a secret in the encrypted vault')
-        .action((key: string, value: string, file?: string) => {
-          cmdVaultSet(key, value, file);
-        }),
-    )
-    .addCommand(
-      new Command('delete')
-        .argument('<key>', 'Secret key to remove')
-        .argument('[file]', '.enth spec file')
-        .description('Remove a secret from the vault')
-        .action((key: string, file?: string) => {
-          cmdVaultDelete(key, file);
-        }),
-    )
-    .addCommand(
-      new Command('keys')
-        .argument('[file]', '.enth spec file')
-        .description('List all key names in the vault')
-        .action((file?: string) => {
-          cmdVaultKeys(file);
-        }),
-    )
-    .addCommand(
-      new Command('export')
-        .argument('[file]', '.enth spec file')
-        .option('-o, --out <file>', 'Write to .env file')
-        .description('Export vault contents as .env (decrypted)')
-        .action((file?: string, opts?: { out?: string }) => {
-          cmdVaultExport(opts?.out, file);
-        }),
-    );
-
-  program
     .command('setup')
     .description('Configure your AI provider and API key')
     .action(async () => {
@@ -575,18 +412,6 @@ async function main(): Promise<void> {
     });
 
   program
-  let serveMode = false;
-
-  program
-    .command('serve')
-    .description('Start MCP server (stdio) — use with Claude Desktop, Cursor, or Docker')
-    .action(() => {
-      serveMode = true;
-      serve();
-      // process stays alive via readline until stdin closes
-    });
-
-  program
     .command('migrate')
     .description('Compare two .enth specs and produce a human-readable migration report')
     .requiredOption('--from <file>', 'Source spec file (old version)')
@@ -609,8 +434,6 @@ async function main(): Promise<void> {
   }
 
   await program.parseAsync(process.argv);
-
-  if (serveMode) return; // stdio mode — don't touch stdout
 
   // After any direct command, return to menu if interactive terminal
   if (process.stdout.isTTY) {

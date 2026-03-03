@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "enthropic": {
+      "type": "stdio",
+      "command": "/Users/girste/.nvm/versions/node/v24.13.1/bin/enthropic",
+      "args": ["serve"]
+    }
+  }
+}

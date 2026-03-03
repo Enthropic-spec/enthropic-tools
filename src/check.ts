@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import chalk from 'chalk';
 import { parse } from './parser.js';
@@ -6,7 +6,6 @@ import type { EnthSpec } from './parser.js';
 import { validate } from './validator.js';
 import { lint } from './lint.js';
 import { generate as generateState } from './state.js';
-import { refreshVaultFile } from './vault.js';
 import * as tui from './tui.js';
 
 export interface CheckResult {
@@ -61,7 +60,7 @@ export function cmdCheck(file?: string): boolean {
     console.log('');
   }
 
-  // On clean spec: scaffold state/vault/gitignore if missing
+  // On clean spec: scaffold state file if missing
   if (errors.length === 0) {
     const name = projectName(spec, specPath);
     const dir = dirname(specPath);
@@ -70,19 +69,6 @@ export function cmdCheck(file?: string): boolean {
     if (!existsSync(statePath)) {
       writeFileSync(statePath, generateState(spec, name));
       console.log(chalk.dim(`  created state_${name}.enth`));
-    }
-
-    refreshVaultFile(name, spec.secrets, dir);
-
-    const gitignorePath = resolve(dir, '.gitignore');
-    if (existsSync(gitignorePath)) {
-      const existing = readFileSync(gitignorePath, 'utf-8');
-      const additions = ['vault_*.enth', 'state_*.enth'].filter(e => !existing.includes(e));
-      if (additions.length > 0) {
-        writeFileSync(gitignorePath, existing.trimEnd() + '\n' + additions.join('\n') + '\n');
-      }
-    } else {
-      writeFileSync(gitignorePath, 'vault_*.enth\nstate_*.enth\n.env\n');
     }
   }
 

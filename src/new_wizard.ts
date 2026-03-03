@@ -4,7 +4,6 @@ import * as tui from './tui.js';
 import { parse } from './parser.js';
 import { validate } from './validator.js';
 import { generate as generateState } from './state.js';
-import { refreshVaultFile } from './vault.js';
 import { getWorkdir } from './global_config.js';
 
 const LANGUAGES = ['python', 'rust', 'typescript', 'go', 'other'];
@@ -64,7 +63,7 @@ export async function run(): Promise<void> {
   console.log();
 
   if (addLayers) {
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
       const layerName = await tui.input('Layer name (UPPER_CASE)');
       console.log();
@@ -150,7 +149,6 @@ export async function run(): Promise<void> {
 
   const stateContent = generateState(spec, slug);
   writeFileSync(join(projectDir, `state_${slug}.enth`), stateContent);
-  refreshVaultFile(slug, spec.secrets, projectDir);
 
   console.log();
   if (errors.length === 0) {
@@ -159,7 +157,6 @@ export async function run(): Promise<void> {
     tui.printSuccess(`${slug}.enth created (with warnings — check above)`);
   }
   tui.printSuccess(`state_${slug}.enth created`);
-  tui.printSuccess(`vault_${slug}.enth created`);
   tui.printDim(`  Project folder: ${projectDir}`);
   console.log();
   tui.printDim('  Next: run  enthropic build  to start building with AI.');

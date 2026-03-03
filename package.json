@@ -1,7 +1,7 @@
 {
   "name": "enthropic",
   "version": "0.1.1",
-  "description": "CLI for the Enthropic architectural specification format",
+  "description": "CLI companion for the Enthropic architectural specification format",
   "license": "MIT",
   "author": "Enthropic-spec",
   "repository": {
@@ -14,8 +14,7 @@
     "spec",
     "architecture",
     "ai",
-    "cli",
-    "mcp"
+    "cli"
   ],
   "type": "module",
   "bin": {
@@ -42,18 +41,18 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.4.0",
-    "@noble/ciphers": "^1.3.0",
+    "@inquirer/prompts": "^8.3.0",
+    "@noble/ciphers": "^2.1.1",
     "chalk": "^5.4.1",
-    "commander": "^12.1.0",
-    "ora": "^8.1.1"
+    "commander": "^14.0.3",
+    "ora": "^9.3.0"
   },
   "devDependencies": {
-    "@types/node": "^20.17.57",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "@vercel/ncc": "^0.38.3",
-    "eslint": "^8.57.1",
+    "eslint": "^9.31.0",
     "typescript": "^5.8.3"
   }
 }

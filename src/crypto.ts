@@ -1,4 +1,4 @@
-import { chacha20poly1305 } from '@noble/ciphers/chacha';
+import { chacha20poly1305 } from '@noble/ciphers/chacha.js';
 import { randomBytes } from 'crypto';
 
 export function encryptData(key: Uint8Array, data: Uint8Array): Uint8Array {

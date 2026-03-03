@@ -304,7 +304,7 @@ export async function run(file?: string, forceNew = false, workdir = process.cwd
   const question = (prompt: string): Promise<string> =>
     new Promise(res => rl.question(prompt, res));
 
-  // eslint-disable-next-line no-constant-condition
+   
   while (true) {
     const userInput = (await question(`${tui.boldWhite('You ›')} `)).trim();
 
