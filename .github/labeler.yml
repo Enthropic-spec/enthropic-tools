@@ -22,20 +22,12 @@
       - "src/validator.ts"
       - "src/context.ts"
 
-"mcp":
-  - changed-files:
-    - any-glob-to-any-file: "src/mcp.ts"
-
 "security":
   - changed-files:
     - any-glob-to-any-file:
-      - "src/vault.ts"
+      - "src/crypto.ts"
       - "src/global_config.ts"
       - "SECURITY.md"
-
-"docker":
-  - changed-files:
-    - any-glob-to-any-file: "Dockerfile"
 
 "documentation":
   - changed-files:

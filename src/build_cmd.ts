@@ -8,7 +8,6 @@ import * as globalConfig from './global_config.js';
 import * as tui from './tui.js';
 import { parse } from './parser.js';
 import { generate as generateState } from './state.js';
-import { refreshVaultFile } from './vault.js';
 import { tryResolveSpec } from './utils.js';
 
 const MAX_TOKENS = 4096;
@@ -210,10 +209,7 @@ async function saveSpec(content: string, workdir: string): Promise<string | null
     writeFileSync(join(projectDir, `state_${name}.enth`), stateContent);
     tui.printSuccess(`State file: state_${name}.enth`);
 
-    if (spec.secrets.length > 0) {
-      refreshVaultFile(name, spec.secrets, projectDir);
-      tui.printSuccess(`Vault file: vault_${name}.enth`);
-    }
+
     console.log();
     tui.printDim('  The spec is now your source of truth. Pass it to your AI coder as context.');
     console.log();

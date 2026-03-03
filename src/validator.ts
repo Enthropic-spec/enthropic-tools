@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import type { EnthSpec } from './parser.js';
 
 export interface ValidationError {
@@ -100,23 +99,6 @@ export function validate(spec: EnthSpec): ValidationError[] {
     }
   }
 
-  // 11 — VAULT blocks must not appear in enthropic.enth
-  if (spec.sourceFile.endsWith('enthropic.enth')) {
-    try {
-      const raw = readFileSync(spec.sourceFile, 'utf-8');
-      raw.split('\n').forEach((line, idx) => {
-        if (line.trim().startsWith('VAULT ')) {
-          errors.push({
-            rule: 11,
-            message: `VAULT block in enthropic.enth at line ${idx + 1} — secrets must live in vault_*.enth`,
-            severity: 'ERROR',
-          });
-        }
-      });
-    } catch {
-      // ignore read errors
-    }
-  }
 
   // 12 — LAYERS CALLS may only reference declared layer names ('none' = calls nothing)
   const declaredLayers = new Set(spec.layers.keys());

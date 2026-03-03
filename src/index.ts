@@ -101,7 +101,7 @@ async function pickEnthFile(workdir: string, label = 'Select project', allowBack
 
   // Flat files in workdir
   for (const f of readdirSync(workdir).sort()) {
-    if (f.endsWith('.enth') && !f.startsWith('vault_') && !f.startsWith('state_')) {
+    if (f.endsWith('.enth') && !f.startsWith('state_')) {
       choices.push({ name: tui.pink(f), value: join(workdir, f) });
     }
   }

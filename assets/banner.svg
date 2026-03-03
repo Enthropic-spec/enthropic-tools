@@ -12,6 +12,6 @@
   </text>
 
   <!-- tagline -->
-  <text x="30" y="148" font-family="'Courier New', monospace" font-size="12" fill="#ffafff" opacity="0.5">🧠  spec-driven development</text>
+  <text x="30" y="148" font-family="'Courier New', monospace" font-size="12" fill="#ffafff" opacity="0.5">True spec-driven development</text>
 
 </svg>

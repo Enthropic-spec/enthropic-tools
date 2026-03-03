@@ -1,41 +1,37 @@
-VERSION 1.0
+VERSION 1.0.0
 
 PROJECT enthropic-tools
   NAME   "enthropic"
-  STACK  typescript, node, commander, chalk, inquirer, ora, noble-ciphers, bun
+  STACK  typescript, node, commander, inquirer, ora, noble-ciphers, bun
   ARCH   layered
   LANG   typescript
 
   DEPS
-    RUNTIME  commander, chalk, @inquirer/prompts, ora, @noble/ciphers
+    RUNTIME  commander, @inquirer/prompts, ora, @noble/ciphers
     DEV      typescript, @types/node, eslint, @typescript-eslint/eslint-plugin, bun
 
 CONTEXT
-  DESCRIPTION "CLI toolkit for the Enthropic spec format. Interactive TUI for spec-driven development: AI-assisted spec creation, validation, build state tracking, encrypted secrets vault, and MCP server for AI coding tools (Claude Desktop, Cursor, Copilot CLI)."
+  DESCRIPTION "CLI companion for the Enthropic spec format. Interactive TUI for spec-driven development: AI-assisted spec creation, validation, build state tracking, and context generation."
 
 VOCABULARY
   EnthSpec          # never: spec, parsed_spec, enth
   ValidationError   # never: error, err, validation_err
   ProjectState      # never: state, build_state, progress
-  VaultEntry        # never: secret, cred, env_var
   GlobalConfig      # never: config, settings, prefs, cfg
   AiSession         # never: chat, conversation, session
-  McpServer         # never: mcp, server, stdio_server
 
-ENTITY enth_spec, validation_error, project_state, vault_entry, global_config, ai_session, mcp_server
+ENTITY enth_spec, validation_error, project_state, global_config, ai_session
 
 TRANSFORM
-  enth_spec      -> validation_error : validate
-  enth_spec      -> project_state    : generate
-  enth_spec      -> ai_session       : build_context
-  enth_spec      -> mcp_server       : serve
-  global_config  -> ai_session       : configure
-  vault_entry    -> project_state    : sync_status
+  enth_spec     -> validation_error : validate
+  enth_spec     -> project_state    : generate
+  enth_spec     -> ai_session       : build_context
+  global_config -> ai_session       : configure
 
 LAYERS
   CLI
     OWNS    command_dispatch, user_input, output_formatting, tui_rendering, interactive_menu
-    CALLS   CORE, STORAGE, AI, MCP
+    CALLS   CORE, STORAGE, AI
     NEVER   direct_file_parsing
     NEVER   encryption
 
@@ -47,7 +43,7 @@ LAYERS
     NEVER   encryption
 
   STORAGE
-    OWNS    vault_encryption, global_key_management, file_persistence
+    OWNS    global_key_management, file_persistence, api_key_encryption
     NEVER   terminal_output
     NEVER   api_calls
     NEVER   spec_parsing
@@ -58,20 +54,11 @@ LAYERS
     NEVER   file_writing
     NEVER   encryption
 
-  MCP
-    OWNS    jsonrpc_stdio, tool_dispatch, spec_exposure
-    CALLS   CORE
-    NEVER   terminal_output
-    NEVER   encryption
-    NEVER   ai_api_calls
-
 CONTRACTS
-  vault_entry.*        NEVER    plaintext_on_disk
-  global_config.*      NEVER    api_key_in_plaintext
-  ai_session.*         REQUIRES valid_enth_spec
-  validation_error.*   ALWAYS   includes_rule_number
-  project_state.*      NEVER    overwrite_built_entity
-  mcp_server.*         NEVER    non_jsonrpc_on_stdout
+  global_config.*    NEVER    api_key_in_plaintext
+  ai_session.*       REQUIRES valid_enth_spec
+  validation_error.* ALWAYS   includes_rule_number
+  project_state.*    NEVER    overwrite_built_entity
 
   FLOW setup
     1. global_config.check_existing
@@ -87,10 +74,9 @@ CONTRACTS
     2. enth_spec.collect_stack
     3. enth_spec.collect_entities
     4. enth_spec.collect_layers
-    5. enth_spec.collect_secrets
-    6. enth_spec.write_file
-    7. validation_error.validate
-    8. project_state.generate
+    5. enth_spec.write_file
+    6. validation_error.validate
+    7. project_state.generate
     ROLLBACK  enth_spec.delete_partial_file
     ATOMIC    false
     TIMEOUT   120s
@@ -102,13 +88,3 @@ CONTRACTS
     4. ai_session.send_system_prompt
     5. ai_session.repl_loop
     ATOMIC  false
-
-  FLOW mcp_serve
-    1. mcp_server.init_stdio
-    2. mcp_server.await_jsonrpc
-    3. mcp_server.dispatch_tool
-    4. mcp_server.respond_stdout
-    ATOMIC  false
-
-SECRETS
-  # no project-level secrets — the tool manages others' secrets, not its own
